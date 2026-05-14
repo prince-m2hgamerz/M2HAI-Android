@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.M2HAI" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Main theme colors are handled in Compose -->
+    </style>
+</resources>

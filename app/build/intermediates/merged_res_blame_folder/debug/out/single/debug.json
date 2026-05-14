@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-70:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-72:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\drawable_ic_launcher_background.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\drawable\\ic_launcher_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\drawable_ic_launcher_foreground.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\drawable\\ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-merged_res-70:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\m2hga\\.gradle\\daemon\\8.7\\com.m2h.m2haichatbot.app-main-72:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    }
+]
