@@ -59,9 +59,16 @@ class NvidiaAIService @Inject constructor(
         messages: List<ChatMessage>,
         modelId: String
     ): Flow<String> = flow {
+        // Double check filtering
+        val validMessages = messages.filter { it.content.isNotBlank() }
+        
+        if (validMessages.isEmpty()) {
+            throw Exception("Cannot send an empty message history")
+        }
+
         val request = ChatRequest(
             model = modelId,
-            messages = messages,
+            messages = validMessages,
             stream = true
         )
 
@@ -70,7 +77,7 @@ class NvidiaAIService @Inject constructor(
 
         val token = auth.currentSessionOrNull()?.accessToken ?: supabaseAnonKey
 
-        Log.d(TAG, "Starting stream request to $supabaseFunctionUrl with model $modelId")
+        Log.d(TAG, "Starting stream request with ${validMessages.size} messages")
 
         val httpRequest = Request.Builder()
             .url(supabaseFunctionUrl)
@@ -83,16 +90,19 @@ class NvidiaAIService @Inject constructor(
             try {
                 okHttpClient.newCall(httpRequest).execute()
             } catch (e: Exception) {
-                Log.e(TAG, "HTTP request execution failed", e)
+                Log.e(TAG, "Network request failed", e)
                 throw e
             }
         }
 
         response.use {
             if (!response.isSuccessful) {
-                val errorBody = response.body?.string()
+                val errorBody = response.body?.string() ?: "No error body"
                 Log.e(TAG, "API call failed: ${response.code} - $errorBody")
-                throw Exception("API call failed: ${response.code}")
+                
+                // If it's a 404, might be the function name or URL
+                // If it's a 500, it's our Edge Function logic
+                throw Exception("Streaming error (${response.code}): $errorBody")
             }
 
             response.body?.byteStream()?.bufferedReader()?.use { reader ->
@@ -101,24 +111,21 @@ class NvidiaAIService @Inject constructor(
                         try {
                             reader.readLine() 
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error reading line from SSE stream", e)
                             null
                         }
                     } ?: break
                     
                     if (line.startsWith("data: ")) {
                         val data = line.removePrefix("data: ")
-                        if (data == "[DONE]") {
-                            Log.d(TAG, "Stream completed successfully")
-                            break
-                        }
+                        if (data == "[DONE]") break
+                        
                         try {
                             val chatResponse = json.decodeFromString<ChatResponse>(data)
                             chatResponse.choices.firstOrNull()?.delta?.content?.let { content ->
                                 emit(content)
                             }
                         } catch (e: Exception) {
-                            Log.w(TAG, "Failed to decode SSE chunk: $data", e)
+                            // Some providers send non-JSON data lines, ignore them
                         }
                     }
                 }

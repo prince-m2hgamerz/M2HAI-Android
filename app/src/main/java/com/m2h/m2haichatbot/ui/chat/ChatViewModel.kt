@@ -161,8 +161,10 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(isStreaming = true, isLoading = false) }
         
         val aiMessageId = UUID.randomUUID().toString()
-        var aiContent = ""
         
+        // Use the messages BEFORE adding the temporary one for the API call
+        val historyForApi = _uiState.value.messages.filter { it.content.isNotBlank() }
+
         val tempAiMessage = Message(
             id = aiMessageId,
             chatId = chat.id,
@@ -174,7 +176,8 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(messages = it.messages + tempAiMessage) }
 
         try {
-            repository.streamChatResponse(chat.id, _uiState.value.messages, modelId).collect { response ->
+            var aiContent = ""
+            repository.streamChatResponse(chat.id, historyForApi, modelId).collect { response ->
                 aiContent = response.content
                 _uiState.update { state ->
                     state.copy(
@@ -185,6 +188,11 @@ class ChatViewModel @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages.filter { it.id != aiMessageId }
+                )
+            }
         } finally {
             _uiState.update { it.copy(isStreaming = false) }
         }

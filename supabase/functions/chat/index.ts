@@ -14,6 +14,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  if (!NVIDIA_API_KEY) {
+    return new Response(JSON.stringify({
+      error: "NVIDIA_API_KEY is not set in Supabase project secrets.",
+      hint: "Run: supabase secrets set NVIDIA_API_KEY=your_key"
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     // Handle GET request to list models
     if (req.method === 'GET') {
@@ -24,17 +34,26 @@ serve(async (req) => {
         },
       })
 
+      if (!response.ok) {
+        const error = await response.text()
+        return new Response(JSON.stringify({ error: "NVIDIA Models API failed", details: error }), {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const data = await response.json()
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const { messages, model, stream = true, temperature = 0.5, max_tokens = 1024 } = await req.json()
+    const body = await req.json()
+    const { messages, model, stream = true, temperature = 0.5, max_tokens = 1024 } = body
 
-    if (!NVIDIA_API_KEY) {
-      return new Response(JSON.stringify({ error: "NVIDIA_API_KEY not configured" }), {
-        status: 500,
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Messages array is required and cannot be empty" }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -57,7 +76,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      return new Response(JSON.stringify(errorData), {
+      console.error("NVIDIA API Error:", errorData)
+      return new Response(JSON.stringify({
+        error: "NVIDIA Chat API failed",
+        upstream_status: response.status,
+        details: errorData
+      }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -78,6 +102,7 @@ serve(async (req) => {
       })
     }
   } catch (error) {
+    console.error("Function Error:", error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

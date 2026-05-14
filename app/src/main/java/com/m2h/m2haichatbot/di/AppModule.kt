@@ -56,11 +56,15 @@ object AppModule {
             try {
                 val response = chain.proceed(request)
                 if (!response.isSuccessful && !request.url.toString().contains("telegram.org")) {
+                    val buffer = okio.Buffer()
+                    request.body?.writeTo(buffer)
+                    val bodyString = buffer.readUtf8()
+                    
                     val errorMsg = "HTTP ${response.code} for ${request.method} ${request.url}"
                     TelegramLogger.logError(
                         message = errorMsg,
                         screen = "Network/API",
-                        extra = "Request Body: ${request.body}"
+                        extra = "Request Body: $bodyString"
                     )
                 }
                 response
