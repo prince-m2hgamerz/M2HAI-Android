@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
 
 const NVIDIA_API_KEY = Deno.env.get('NVIDIA_API_KEY')
 const NVIDIA_CHAT_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
@@ -75,20 +76,89 @@ serve(async (req) => {
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      console.error("NVIDIA API Error:", errorData)
+      // Upstream may return non-JSON payloads (including stream-like text),
+      // so never assume response.json() will succeed.
+      const errorText = await response.text()
+      console.error("NVIDIA API Error (text):", errorText)
       return new Response(JSON.stringify({
         error: "NVIDIA Chat API failed",
         upstream_status: response.status,
-        details: errorData
+        details: errorText
       }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+
     if (stream) {
-      return new Response(response.body, {
+      // The upstream NVIDIA stream is not guaranteed to be SSE formatted.
+      // The app expects SSE-ish `data: <json>` lines; normalize the stream to that.
+      const stream = response.body
+      if (!stream) {
+        return new Response(JSON.stringify({ error: 'NVIDIA returned empty stream body' }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const decoder = new TextDecoder()
+      const encoder = new TextEncoder()
+
+      const normalized = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const reader = stream.getReader()
+          let buffer = ''
+
+          while (true) {
+            const { value, done } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+
+            // Best-effort line splitting for SSE upstreams;
+            // for raw chunk streams, JSON objects typically appear within lines anyway.
+            const parts = buffer.split(/\r?\n/)
+            buffer = parts.pop() ?? ''
+
+            for (const part of parts) {
+              const line = part.trim()
+              if (!line) continue
+
+              // If upstream already provides SSE frames, forward them.
+              if (line.startsWith('data:')) {
+                controller.enqueue(encoder.encode(line + '\n'))
+                continue
+              }
+
+              // Otherwise, wrap the raw line/chunk as an SSE data payload.
+              controller.enqueue(encoder.encode(`data: ${line}\n`))
+
+              // If the chunk is an end marker, also terminate.
+              if (line === '[DONE]') {
+                controller.enqueue(encoder.encode('data: [DONE]\n'))
+                controller.close()
+                return
+              }
+            }
+          }
+
+          // Flush remaining buffer
+          const tail = buffer.trim()
+          if (tail) {
+            if (tail.startsWith('data:')) {
+              controller.enqueue(encoder.encode(tail + '\n'))
+            } else {
+              controller.enqueue(encoder.encode(`data: ${tail}\n`))
+            }
+          }
+
+          controller.enqueue(encoder.encode('data: [DONE]\n'))
+          controller.close()
+        },
+      })
+
+      return new Response(normalized, {
         headers: {
           ...corsHeaders,
           'Content-Type': 'text/event-stream',
@@ -101,6 +171,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
   } catch (error) {
     console.error("Function Error:", error)
     return new Response(JSON.stringify({ error: error.message }), {

@@ -99,34 +99,94 @@ class NvidiaAIService @Inject constructor(
             if (!response.isSuccessful) {
                 val errorBody = response.body?.string() ?: "No error body"
                 Log.e(TAG, "API call failed: ${response.code} - $errorBody")
-                
-                // If it's a 404, might be the function name or URL
-                // If it's a 500, it's our Edge Function logic
                 throw Exception("Streaming error (${response.code}): $errorBody")
             }
 
+            // Parse stream as Server-Sent Events or raw JSON chunks.
+            // We read line-by-line, but we also tolerate non-JSON lines.
             response.body?.byteStream()?.bufferedReader()?.use { reader ->
                 while (true) {
-                    val line = withContext(Dispatchers.IO) { 
-                        try {
-                            reader.readLine() 
-                        } catch (e: Exception) {
+                    val rawLine = withContext(Dispatchers.IO) { reader.readLine() } ?: break
+
+                    val line = rawLine.trim()
+                    if (line.isBlank()) continue
+
+                    // Prefer SSE-style: data: <payload>
+                    // Strip SSE prefix if present. If not present, treat the whole line as payload.
+                    var payload = line
+                    if (payload.startsWith("data:")) {
+                        payload = payload.removePrefix("data:").trim()
+                    }
+
+                    // Some providers send `data: {..}\ndata: {..}`; if we receive a server-side JSON error
+                    // payload (e.g. {"error": ...}), surface it as an exception so the UI can display it.
+                    if (payload.startsWith("{") && payload.contains("\"error\"")) {
+                        Log.e(TAG, "Server returned error payload in stream: ${payload.take(400)}")
+                        throw Exception("Streaming server error: $payload")
+                    }
+
+
+                    if (payload.isBlank()) continue
+                    if (payload == "[DONE]") break
+
+                    val truncated = if (payload.length > 220) payload.substring(0, 220) + "…" else payload
+
+                    // Most chunks should be JSON objects. If parsing fails, try to salvage JSON inside.
+                    // NOTE: keep this non-suspending; `emit(...)` is a suspend function.
+                    fun parseContentFromJsonObject(jsonText: String): String? {
+                        return try {
+                            val chatResponse = json.decodeFromString<ChatResponse>(jsonText)
+                            chatResponse.choices.firstOrNull()?.delta?.content
+                        } catch (_: Exception) {
                             null
                         }
-                    } ?: break
-                    
-                    if (line.startsWith("data: ")) {
-                        val data = line.removePrefix("data: ")
-                        if (data == "[DONE]") break
-                        
-                        try {
-                            val chatResponse = json.decodeFromString<ChatResponse>(data)
-                            chatResponse.choices.firstOrNull()?.delta?.content?.let { content ->
-                                emit(content)
+                    }
+
+
+
+                    try {
+                        // Some upstreams include multiple SSE frames on one line; split and parse each.
+                        val segments = payload.split("data:").map { it.trim() }.filter { it.isNotEmpty() }
+                        for (seg in segments) {
+                            val direct = parseContentFromJsonObject(seg)
+                            if (!direct.isNullOrEmpty()) {
+                                emit(direct)
+                            } else {
+                                // salvage from first {..} within the segment
+                                val start = seg.indexOf('{')
+                                val end = seg.lastIndexOf('}')
+                                if (start != -1 && end != -1 && end > start) {
+                                    val candidate = seg.substring(start, end + 1)
+                                    val salvaged = parseContentFromJsonObject(candidate)
+                                    if (!salvaged.isNullOrEmpty()) emit(salvaged)
+                                }
                             }
-                        } catch (e: Exception) {
-                            // Some providers send non-JSON data lines, ignore them
                         }
+                        continue
+                    } catch (e: Exception) {
+                        // salvage block below
+                    }
+
+                    try {
+                        val direct = parseContentFromJsonObject(payload)
+                        if (!direct.isNullOrEmpty()) {
+                            emit(direct)
+                            continue
+                        }
+
+
+                        // If the payload wasn't valid JSON (or didn't decode), try salvage.
+                        val start = payload.indexOf('{')
+                        val end = payload.lastIndexOf('}')
+                        if (start != -1 && end != -1 && end > start) {
+                            val candidate = payload.substring(start, end + 1)
+                            if (candidate != payload) {
+                                val salvaged = parseContentFromJsonObject(candidate)
+                                if (!salvaged.isNullOrEmpty()) emit(salvaged)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Skipping non-JSON/partial chunk. raw='$truncated'", e)
                     }
                 }
             }
