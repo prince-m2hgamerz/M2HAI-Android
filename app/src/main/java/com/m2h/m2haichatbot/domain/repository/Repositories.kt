@@ -28,7 +28,7 @@ interface ChatRepository {
     suspend fun toggleArchive(chatId: String, isArchived: Boolean): Result<Unit>
     
     suspend fun getMessages(chatId: String): Flow<List<Message>>
-    suspend fun saveMessage(chatId: String, role: MessageRole, content: String, attachments: List<Attachment> = emptyList()): Result<Unit>
+    suspend fun saveMessage(chatId: String, role: MessageRole, content: String, attachments: List<Attachment> = emptyList()): Result<Message>
     suspend fun streamChatResponse(chatId: String, messages: List<Message>, modelId: String): Flow<StreamResponse>
     
     suspend fun uploadAttachment(fileName: String, bytes: ByteArray, mimeType: String): Result<Attachment>

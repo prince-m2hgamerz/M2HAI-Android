@@ -189,15 +189,70 @@ class SupabaseService @Inject constructor(
     }
 
     suspend fun createChat(request: CreateChatRequest): ChatDto {
-        try {
-            return supabase.from("chats")
+        Log.d(TAG, "Creating chat for model: ${request.model_id}")
+        ensureModelExists(request.model_id)
+        
+        return try {
+            supabase.from("chats")
                 .insert(request) {
                     select()
                 }
                 .decodeSingle<ChatDto>()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in createChat", e)
+            Log.e(TAG, "Failed to create chat in Supabase", e)
+            val errorMsg = e.message ?: ""
+            if (errorMsg.contains("chats_model_id_fkey")) {
+                Log.w(TAG, "FK Violation! Attempting emergency model sync for ${request.model_id}...")
+                try {
+                    ensureModelExists(request.model_id)
+                    // Recursive call - be careful, but we only do it once
+                    return supabase.from("chats").insert(request) { select() }.decodeSingle<ChatDto>()
+                } catch (inner: Exception) {
+                    Log.e(TAG, "Emergency sync and retry failed", inner)
+                    throw Exception("Model '${request.model_id}' is not registered in the system. Please try another model or contact support.")
+                }
+            }
             throw e
+        }
+    }
+
+    private suspend fun ensureModelExists(modelId: String) {
+        if (modelId.isEmpty()) return
+        try {
+            Log.d(TAG, "Ensuring model exists in DB: $modelId")
+            
+            // First check if it exists to avoid unnecessary upsert attempts if RLS is tight
+            val exists = try {
+                supabase.from("ai_models").select {
+                    filter { eq("id", modelId) }
+                }.decodeList<AIModelDto>().isNotEmpty()
+            } catch (e: Exception) {
+                false
+            }
+
+            if (!exists) {
+                supabase.from("ai_models").upsert(mapOf(
+                    "id" to modelId,
+                    "name" to (modelId.split("/").lastOrNull() ?: modelId),
+                    "provider" to "AI",
+                    "description" to "Auto-registered model",
+                    "is_free" to true
+                ))
+                Log.i(TAG, "Successfully auto-registered model: $modelId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to auto-register model: $modelId", e)
+            // If it's a permission issue, we can't do much, but we've tried.
+        }
+    }
+
+    suspend fun syncModelsToDb(models: List<AIModelDto>) {
+        if (models.isEmpty()) return
+        try {
+            Log.d(TAG, "Syncing ${models.size} models to Supabase DB")
+            supabase.from("ai_models").upsert(models)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync models to DB", e)
         }
     }
 
@@ -267,7 +322,7 @@ class SupabaseService @Inject constructor(
             val dataArray = modelsData["data"]?.jsonArray
             
             if (dataArray != null) {
-                return dataArray.map { 
+                val models = dataArray.map { 
                     val obj = it.jsonObject
                     val modelId = obj["id"]?.jsonPrimitive?.content ?: ""
                     AIModelDto(
@@ -278,6 +333,11 @@ class SupabaseService @Inject constructor(
                         is_free = true
                     )
                 }.filter { it.id.isNotEmpty() }
+                
+                // Try to sync these to DB in background
+                syncModelsToDb(models)
+                
+                return models
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching models from edge function", e)

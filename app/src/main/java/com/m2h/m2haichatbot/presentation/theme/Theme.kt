@@ -27,7 +27,11 @@ private val LightColorScheme = lightColorScheme(
     error = Error,
     onError = OnPrimary,
     outline = Hairline,
-    outlineVariant = HairlineSoft
+    outlineVariant = HairlineSoft,
+    secondaryContainer = HairlineSoft,
+    onSecondaryContainer = Ink,
+    tertiaryContainer = Color(0xFFFDEFD9),
+    onTertiaryContainer = Color(0xFF8B5E3C)
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -47,7 +51,11 @@ private val DarkColorScheme = darkColorScheme(
     error = Error,
     onError = OnPrimary,
     outline = Color(0xFF3D3D3A),
-    outlineVariant = Color(0xFF252523)
+    outlineVariant = Color(0xFF252523),
+    secondaryContainer = Color(0xFF252523),
+    onSecondaryContainer = OnDark,
+    tertiaryContainer = Color(0xFF332A1E),
+    onTertiaryContainer = AccentAmber
 )
 
 @Composable

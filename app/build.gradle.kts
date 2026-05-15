@@ -38,6 +38,8 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${envString("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${envString("SUPABASE_ANON_KEY")}\"")
+        buildConfigField("String", "NVIDIA_API_KEY", "\"${envString("NVIDIA_API_KEY")}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${envString("GEMINI_API_KEY")}\"")
 
         // Edge function/chat endpoint configuration (safe to ship as URL)
         buildConfigField(

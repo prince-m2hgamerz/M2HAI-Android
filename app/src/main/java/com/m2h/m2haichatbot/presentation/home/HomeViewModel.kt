@@ -17,7 +17,9 @@ data class HomeState(
     val models: List<AIModel> = emptyList(),
     val selectedModel: AIModel? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val userAvatarUrl: String? = null,
+    val userFullName: String? = null
 )
 
 @HiltViewModel
@@ -31,25 +33,49 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
+        loadUserProfile()
         loadModels()
-        loadChats()
+        syncAndLoadChats()
+    }
+
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            authRepository.getUserProfile().onSuccess { user ->
+                _state.update { it.copy(userAvatarUrl = user.avatarUrl, userFullName = user.fullName) }
+            }
+        }
     }
 
     private fun loadModels() {
         viewModelScope.launch {
             try {
-                val models = modelRepository.getAvailableModels()
-                _state.update { it.copy(models = models, selectedModel = models.firstOrNull()) }
+                val allModels = modelRepository.getAvailableModels()
+                val allowedIds = setOf(
+                    "gemini-flash-latest",
+                    "meta/llama-3.1-70b-instruct",
+                    "meta/llama-3.1-8b-instruct",
+                    "meta/llama-3.2-90b-vision-instruct",
+                    "google/gemma-2-9b-it",
+                    "google/gemma-2-2b-it",
+                    "nvidia/llama-3.1-nemotron-70b-instruct",
+                    "stabilityai/sdxl"
+                )
+                val models = allModels.filter { it.id in allowedIds }.sortedBy { it.name }
+                _state.update { it.copy(models = models, selectedModel = models.firstOrNull { it.id == "gemini-flash-latest" } ?: models.firstOrNull()) }
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message) }
             }
         }
     }
 
-    private fun loadChats() {
+    private fun syncAndLoadChats() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
+                // Initial sync from server
+                chatRepository.syncChats()
+                
+                // Observe local database for real-time updates
                 chatRepository.getChats().collect { chats ->
                     _state.update { it.copy(chats = chats, isLoading = false) }
                 }
@@ -60,22 +86,18 @@ class HomeViewModel @Inject constructor(
     }
 
     fun createNewChat(onChatCreated: (String) -> Unit) {
-        viewModelScope.launch {
-            val modelId = _state.value.selectedModel?.id ?: return@launch
-            
-            chatRepository.createChat(modelId)
-                .onSuccess { chat ->
-                    onChatCreated(chat.id)
-                }
-                .onFailure { error ->
-                    _state.update { it.copy(error = error.message) }
-                }
-        }
+        onChatCreated("new")
     }
 
     fun deleteChat(chatId: String) {
         viewModelScope.launch {
             chatRepository.deleteChat(chatId)
+        }
+    }
+
+    fun renameChat(chatId: String, newTitle: String) {
+        viewModelScope.launch {
+            chatRepository.updateChatTitle(chatId, newTitle)
         }
     }
 

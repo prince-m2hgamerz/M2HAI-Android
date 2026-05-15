@@ -7,13 +7,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.m2h.m2haichatbot.domain.model.Chat
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,28 +33,44 @@ fun HomeScreen(
     var showModelSelector by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("M2HAI") },
+                title = { 
+                    Text("M2HAI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) 
+                },
                 actions = {
-                    IconButton(onClick = { showModelSelector = true }) {
-                        Icon(Icons.Default.Settings, "Model Settings")
+                    IconButton(onClick = { /* TODO: Search */ }) {
+                        Icon(Icons.Default.Search, "Search", tint = MaterialTheme.colorScheme.onBackground)
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Person, "Profile")
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = state.chats.firstOrNull()?.userId?.take(2)?.uppercase() ?: "PK", 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { viewModel.createNewChat(onNavigateToChat) },
-                icon = { Icon(Icons.Default.Add, "New Chat") },
-                text = { Text("New Chat") },
-                containerColor = MaterialTheme.colorScheme.primary
+                icon = { Icon(Icons.Default.Add, "New Chat", tint = MaterialTheme.colorScheme.onPrimary) },
+                text = { Text("New Chat", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
     ) { padding ->
@@ -63,7 +85,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (state.chats.isEmpty()) {
                 EmptyState(
@@ -72,9 +94,44 @@ fun HomeScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
+                    item {
+                        Text(
+                            text = "Explore",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val categories = listOf(
+                                "Projects" to Icons.Default.Folder,
+                                "Images" to Icons.Default.Image,
+                                "Tools" to Icons.Default.Handyman
+                            )
+                            categories.forEach { (name, icon) ->
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .clickable { }
+                                        .padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(name, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(32.dp))
+                    }
+                    
                     items(state.chats, key = { it.id }) { chat ->
                         ChatItem(
                             chat = chat,
@@ -109,30 +166,11 @@ fun EmptyState(onCreateChat: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Chat,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No conversations yet",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Start a new chat to begin",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onCreateChat) {
-            Icon(Icons.Default.Add, null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("New Chat")
-        }
     }
 }
 
@@ -145,53 +183,40 @@ fun ChatItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = chat.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = chat.modelId.split("/").lastOrNull() ?: chat.modelId,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Text(
+            text = chat.title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
 
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, "Options")
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = {
-                            onDelete()
-                            showMenu = false
-                        },
-                        leadingIcon = { Icon(Icons.Default.Delete, null) }
-                    )
-                }
+        Box {
+            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.MoreVert, "Options", tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                    onClick = {
+                        onDelete()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                )
             }
         }
     }

@@ -511,7 +511,7 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
           return (T) new com.m2h.m2haichatbot.ui.auth.AuthViewModel(singletonCImpl.provideSupabaseAuthProvider.get());
 
           case 2: // com.m2h.m2haichatbot.presentation.chat.ChatViewModel 
-          return (T) new ChatViewModel(singletonCImpl.provideChatRepositoryProvider.get(), viewModelCImpl.savedStateHandle);
+          return (T) new ChatViewModel(singletonCImpl.provideChatRepositoryProvider.get(), singletonCImpl.provideModelRepositoryProvider.get(), viewModelCImpl.savedStateHandle);
 
           case 3: // com.m2h.m2haichatbot.ui.chat.ChatViewModel 
           return (T) new com.m2h.m2haichatbot.ui.chat.ChatViewModel(singletonCImpl.provideChatRepositoryProvider.get(), singletonCImpl.provideModelRepositoryProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
@@ -622,6 +622,8 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
 
     private Provider<Json> provideJsonProvider;
 
+    private Provider<PreferenceRepository> preferenceRepositoryProvider;
+
     private Provider<NvidiaAIService> provideNvidiaAIServiceProvider;
 
     private Provider<M2HAIDatabase> provideM2HAIDatabaseProvider;
@@ -638,8 +640,6 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
 
     private Provider<ModelRepository> provideModelRepositoryProvider;
 
-    private Provider<PreferenceRepository> preferenceRepositoryProvider;
-
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
       initialize(applicationContextModuleParam);
@@ -655,15 +655,15 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
       this.provideAuthRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AuthRepository>(singletonCImpl, 0));
       this.provideOkHttpClientProvider = DoubleCheck.provider(new SwitchingProvider<OkHttpClient>(singletonCImpl, 7));
       this.provideJsonProvider = DoubleCheck.provider(new SwitchingProvider<Json>(singletonCImpl, 8));
+      this.preferenceRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<PreferenceRepository>(singletonCImpl, 9));
       this.provideNvidiaAIServiceProvider = DoubleCheck.provider(new SwitchingProvider<NvidiaAIService>(singletonCImpl, 6));
-      this.provideM2HAIDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<M2HAIDatabase>(singletonCImpl, 10));
-      this.provideChatDaoProvider = DoubleCheck.provider(new SwitchingProvider<ChatDao>(singletonCImpl, 9));
-      this.provideMessageDaoProvider = DoubleCheck.provider(new SwitchingProvider<MessageDao>(singletonCImpl, 11));
-      this.provideSupabasePostgrestProvider = DoubleCheck.provider(new SwitchingProvider<Postgrest>(singletonCImpl, 12));
+      this.provideM2HAIDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<M2HAIDatabase>(singletonCImpl, 11));
+      this.provideChatDaoProvider = DoubleCheck.provider(new SwitchingProvider<ChatDao>(singletonCImpl, 10));
+      this.provideMessageDaoProvider = DoubleCheck.provider(new SwitchingProvider<MessageDao>(singletonCImpl, 12));
+      this.provideSupabasePostgrestProvider = DoubleCheck.provider(new SwitchingProvider<Postgrest>(singletonCImpl, 13));
       this.provideChatRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<ChatRepository>(singletonCImpl, 5));
-      this.provideAIModelDaoProvider = DoubleCheck.provider(new SwitchingProvider<AIModelDao>(singletonCImpl, 14));
-      this.provideModelRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<ModelRepository>(singletonCImpl, 13));
-      this.preferenceRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<PreferenceRepository>(singletonCImpl, 15));
+      this.provideAIModelDaoProvider = DoubleCheck.provider(new SwitchingProvider<AIModelDao>(singletonCImpl, 15));
+      this.provideModelRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<ModelRepository>(singletonCImpl, 14));
     }
 
     @Override
@@ -718,7 +718,7 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
           return (T) AppModule_ProvideChatRepositoryFactory.provideChatRepository(singletonCImpl.provideSupabaseServiceProvider.get(), singletonCImpl.provideNvidiaAIServiceProvider.get(), singletonCImpl.provideChatDaoProvider.get(), singletonCImpl.provideMessageDaoProvider.get(), singletonCImpl.provideSupabaseStorageProvider.get(), singletonCImpl.provideSupabaseAuthProvider.get(), singletonCImpl.provideSupabasePostgrestProvider.get());
 
           case 6: // com.m2h.m2haichatbot.data.remote.NvidiaAIService 
-          return (T) AppModule_ProvideNvidiaAIServiceFactory.provideNvidiaAIService(singletonCImpl.provideOkHttpClientProvider.get(), singletonCImpl.provideJsonProvider.get(), singletonCImpl.provideSupabaseAuthProvider.get());
+          return (T) AppModule_ProvideNvidiaAIServiceFactory.provideNvidiaAIService(singletonCImpl.provideOkHttpClientProvider.get(), singletonCImpl.provideJsonProvider.get(), singletonCImpl.provideSupabaseAuthProvider.get(), singletonCImpl.preferenceRepositoryProvider.get());
 
           case 7: // okhttp3.OkHttpClient 
           return (T) AppModule_ProvideOkHttpClientFactory.provideOkHttpClient();
@@ -726,26 +726,26 @@ public final class DaggerM2HAIApplication_HiltComponents_SingletonC {
           case 8: // kotlinx.serialization.json.Json 
           return (T) AppModule_ProvideJsonFactory.provideJson();
 
-          case 9: // com.m2h.m2haichatbot.data.local.dao.ChatDao 
+          case 9: // com.m2h.m2haichatbot.data.repository.PreferenceRepository 
+          return (T) new PreferenceRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 10: // com.m2h.m2haichatbot.data.local.dao.ChatDao 
           return (T) AppModule_ProvideChatDaoFactory.provideChatDao(singletonCImpl.provideM2HAIDatabaseProvider.get());
 
-          case 10: // com.m2h.m2haichatbot.data.local.M2HAIDatabase 
+          case 11: // com.m2h.m2haichatbot.data.local.M2HAIDatabase 
           return (T) AppModule_ProvideM2HAIDatabaseFactory.provideM2HAIDatabase(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
-          case 11: // com.m2h.m2haichatbot.data.local.dao.MessageDao 
+          case 12: // com.m2h.m2haichatbot.data.local.dao.MessageDao 
           return (T) AppModule_ProvideMessageDaoFactory.provideMessageDao(singletonCImpl.provideM2HAIDatabaseProvider.get());
 
-          case 12: // io.github.jan.supabase.postgrest.Postgrest 
+          case 13: // io.github.jan.supabase.postgrest.Postgrest 
           return (T) SupabaseModule_ProvideSupabasePostgrestFactory.provideSupabasePostgrest(singletonCImpl.provideSupabaseClientProvider.get());
 
-          case 13: // com.m2h.m2haichatbot.domain.repository.ModelRepository 
+          case 14: // com.m2h.m2haichatbot.domain.repository.ModelRepository 
           return (T) AppModule_ProvideModelRepositoryFactory.provideModelRepository(singletonCImpl.provideSupabaseServiceProvider.get(), singletonCImpl.provideAIModelDaoProvider.get());
 
-          case 14: // com.m2h.m2haichatbot.data.local.dao.AIModelDao 
+          case 15: // com.m2h.m2haichatbot.data.local.dao.AIModelDao 
           return (T) AppModule_ProvideAIModelDaoFactory.provideAIModelDao(singletonCImpl.provideM2HAIDatabaseProvider.get());
-
-          case 15: // com.m2h.m2haichatbot.data.repository.PreferenceRepository 
-          return (T) new PreferenceRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

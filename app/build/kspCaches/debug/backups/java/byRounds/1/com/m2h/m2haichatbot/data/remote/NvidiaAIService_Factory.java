@@ -1,5 +1,6 @@
 package com.m2h.m2haichatbot.data.remote;
 
+import com.m2h.m2haichatbot.data.repository.PreferenceRepository;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.QualifierMetadata;
@@ -30,24 +31,30 @@ public final class NvidiaAIService_Factory implements Factory<NvidiaAIService> {
 
   private final Provider<Auth> authProvider;
 
+  private final Provider<PreferenceRepository> preferenceRepositoryProvider;
+
   public NvidiaAIService_Factory(Provider<OkHttpClient> okHttpClientProvider,
-      Provider<Json> jsonProvider, Provider<Auth> authProvider) {
+      Provider<Json> jsonProvider, Provider<Auth> authProvider,
+      Provider<PreferenceRepository> preferenceRepositoryProvider) {
     this.okHttpClientProvider = okHttpClientProvider;
     this.jsonProvider = jsonProvider;
     this.authProvider = authProvider;
+    this.preferenceRepositoryProvider = preferenceRepositoryProvider;
   }
 
   @Override
   public NvidiaAIService get() {
-    return newInstance(okHttpClientProvider.get(), jsonProvider.get(), authProvider.get());
+    return newInstance(okHttpClientProvider.get(), jsonProvider.get(), authProvider.get(), preferenceRepositoryProvider.get());
   }
 
   public static NvidiaAIService_Factory create(Provider<OkHttpClient> okHttpClientProvider,
-      Provider<Json> jsonProvider, Provider<Auth> authProvider) {
-    return new NvidiaAIService_Factory(okHttpClientProvider, jsonProvider, authProvider);
+      Provider<Json> jsonProvider, Provider<Auth> authProvider,
+      Provider<PreferenceRepository> preferenceRepositoryProvider) {
+    return new NvidiaAIService_Factory(okHttpClientProvider, jsonProvider, authProvider, preferenceRepositoryProvider);
   }
 
-  public static NvidiaAIService newInstance(OkHttpClient okHttpClient, Json json, Auth auth) {
-    return new NvidiaAIService(okHttpClient, json, auth);
+  public static NvidiaAIService newInstance(OkHttpClient okHttpClient, Json json, Auth auth,
+      PreferenceRepository preferenceRepository) {
+    return new NvidiaAIService(okHttpClient, json, auth, preferenceRepository);
   }
 }

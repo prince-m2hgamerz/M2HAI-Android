@@ -11,6 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -30,40 +33,38 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: com.m2h.m2haichatbot.presentation.theme.ThemeViewModel = hiltViewModel()
             val useDarkTheme by themeViewModel.darkTheme.collectAsState()
-            
-            val authViewModel: com.m2h.m2haichatbot.presentation.auth.AuthViewModel = hiltViewModel()
-            val authState by authViewModel.state.collectAsState()
+            var showSplash by remember { mutableStateOf(true) }
             
             M2HAITheme(darkTheme = useDarkTheme ?: isSystemInDarkTheme()) {
+                val authViewModel: com.m2h.m2haichatbot.presentation.auth.AuthViewModel = hiltViewModel()
+                val authState by authViewModel.state.collectAsState()
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Show a simple loading indicator while auth status is being determined for the first time
-                    // (Assuming authState.isLoading is true until session is loaded)
-                    // If your AuthViewModel doesn't set isLoading=true initially, you might need to check if it's "unknown"
-                    
-                    val navController = rememberNavController()
-                    
-                    // We only want to decide startDestination once we have a definite answer about the user
-                    // For now, let's use the current state. 
-                    // If authState.user is null and isLoading is true, we could wait.
-                    
-                    if (authState.isLoading && authState.user == null) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    } else {
-                        val startDestination = if (authState.user != null) {
-                            Screen.Home.route
-                        } else {
-                            Screen.Login.route
-                        }
-                        
-                        NavGraph(
-                            navController = navController,
-                            startDestination = startDestination
+                    if (showSplash) {
+                        com.m2h.m2haichatbot.presentation.splash.SplashScreen(
+                            onAnimationFinished = { showSplash = false }
                         )
+                    } else {
+                        if (authState.isLoading && authState.user == null) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        } else {
+                            val navController = rememberNavController()
+                            val startDestination = if (authState.user != null) {
+                                Screen.Home.route
+                            } else {
+                                Screen.Login.route
+                            }
+                            
+                            NavGraph(
+                                navController = navController,
+                                startDestination = startDestination
+                            )
+                        }
                     }
                 }
             }

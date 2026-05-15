@@ -14,6 +14,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 @Serializable
 data class ChatMessage(
@@ -49,7 +50,8 @@ data class ChatResponse(
 class NvidiaAIService @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val json: Json,
-    private val auth: Auth
+    private val auth: Auth,
+    private val preferenceRepository: com.m2h.m2haichatbot.data.repository.PreferenceRepository
 ) {
     private val TAG = "NvidiaAIService"
     private val supabaseFunctionUrl = BuildConfig.EDGE_CHAT_FUNCTION_URL
@@ -66,9 +68,25 @@ class NvidiaAIService @Inject constructor(
             throw Exception("Cannot send an empty message history")
         }
 
+        // Ensure roles strictly alternate: user, assistant, user, assistant...
+        val sanitizedMessages = mutableListOf<ChatMessage>()
+        var lastRole: String? = null
+        
+        validMessages.forEach { msg ->
+            if (msg.role != lastRole) {
+                sanitizedMessages.add(msg)
+                lastRole = msg.role
+            } else if (msg.role == "user") {
+                // Merge consecutive user messages
+                val lastMsg = sanitizedMessages.removeAt(sanitizedMessages.size - 1)
+                sanitizedMessages.add(lastMsg.copy(content = lastMsg.content + "\n" + msg.content))
+            }
+            // Skip consecutive assistant messages (usually shouldn't happen)
+        }
+
         val request = ChatRequest(
             model = modelId,
-            messages = validMessages,
+            messages = sanitizedMessages,
             stream = true
         )
 
@@ -76,13 +94,23 @@ class NvidiaAIService @Inject constructor(
             .toRequestBody("application/json".toMediaType())
 
         val token = auth.currentSessionOrNull()?.accessToken ?: supabaseAnonKey
+        
+        // Use user-provided keys from settings, or fallback to system keys from BuildConfig
+        val geminiKey = preferenceRepository.geminiApiKey.first().ifBlank { BuildConfig.GEMINI_API_KEY }
+        val openaiKey = preferenceRepository.openaiApiKey.first().ifBlank { BuildConfig.NVIDIA_API_KEY } // Fallback to NVIDIA for OpenAI-compatible
+        val groqKey = preferenceRepository.groqApiKey.first().ifBlank { BuildConfig.NVIDIA_API_KEY } // Fallback to NVIDIA for Groq
+        val nvidiaKey = BuildConfig.NVIDIA_API_KEY
 
-        Log.d(TAG, "Starting stream request with ${validMessages.size} messages")
+        Log.d(TAG, "Starting stream request with ${validMessages.size} messages for model $modelId")
 
         val httpRequest = Request.Builder()
             .url(supabaseFunctionUrl)
             .addHeader("apikey", supabaseAnonKey)
             .addHeader("Authorization", "Bearer $token")
+            .addHeader("x-gemini-api-key", geminiKey)
+            .addHeader("x-openai-api-key", openaiKey)
+            .addHeader("x-groq-api-key", groqKey)
+            .addHeader("x-nvidia-api-key", nvidiaKey)
             .post(requestBody)
             .build()
 
@@ -99,94 +127,65 @@ class NvidiaAIService @Inject constructor(
             if (!response.isSuccessful) {
                 val errorBody = response.body?.string() ?: "No error body"
                 Log.e(TAG, "API call failed: ${response.code} - $errorBody")
-                throw Exception("Streaming error (${response.code}): $errorBody")
+                
+                if (errorBody.contains("leaked", ignoreCase = true)) {
+                    throw Exception("System API Key has been leaked. Please add your own API keys in Settings > Custom Providers for a better experience.")
+                }
+                
+                throw Exception("API error (${response.code}): $errorBody")
             }
 
-            // Parse stream as Server-Sent Events or raw JSON chunks.
-            // We read line-by-line, but we also tolerate non-JSON lines.
+            // Handle Non-Streaming (Image Generation or small responses)
+            val isImageModel = modelId.contains("sdxl", true) || modelId.contains("diffusion", true)
+            
+            if (isImageModel || !request.stream) {
+                val body = response.body?.string() ?: ""
+                if (body.contains("\"url\"")) {
+                    val urlStart = body.indexOf("\"url\":\"") + 7
+                    val urlEnd = body.indexOf("\"", urlStart)
+                    if (urlStart > 6 && urlEnd > urlStart) {
+                        val url = body.substring(urlStart, urlEnd)
+                        emit("![Generated Image]($url)")
+                        return@use
+                    }
+                }
+            }
+
+            // Standard Streaming (Chat)
             response.body?.byteStream()?.bufferedReader()?.use { reader ->
                 while (true) {
                     val rawLine = withContext(Dispatchers.IO) { reader.readLine() } ?: break
-
                     val line = rawLine.trim()
                     if (line.isBlank()) continue
-
-                    // Prefer SSE-style: data: <payload>
-                    // Strip SSE prefix if present. If not present, treat the whole line as payload.
-                    var payload = line
-                    if (payload.startsWith("data:")) {
-                        payload = payload.removePrefix("data:").trim()
-                    }
-
-                    // Some providers send `data: {..}\ndata: {..}`; if we receive a server-side JSON error
-                    // payload (e.g. {"error": ...}), surface it as an exception so the UI can display it.
-                    if (payload.startsWith("{") && payload.contains("\"error\"")) {
-                        Log.e(TAG, "Server returned error payload in stream: ${payload.take(400)}")
-                        throw Exception("Streaming server error: $payload")
-                    }
-
-
-                    if (payload.isBlank()) continue
-                    if (payload == "[DONE]") break
-
-                    val truncated = if (payload.length > 220) payload.substring(0, 220) + "…" else payload
-
-                    // Most chunks should be JSON objects. If parsing fails, try to salvage JSON inside.
-                    // NOTE: keep this non-suspending; `emit(...)` is a suspend function.
-                    fun parseContentFromJsonObject(jsonText: String): String? {
-                        return try {
-                            val chatResponse = json.decodeFromString<ChatResponse>(jsonText)
-                            chatResponse.choices.firstOrNull()?.delta?.content
-                        } catch (_: Exception) {
-                            null
+                    
+                    // Handle multiple "data: " segments in a single line
+                    val segments = line.split("data:").map { it.trim() }.filter { it.isNotEmpty() }
+                    
+                    for (segment in segments) {
+                        if (segment == "[DONE]") break
+                        
+                        if (segment.startsWith("{") && segment.contains("\"error\"")) {
+                            throw Exception("Server error: $segment")
                         }
-                    }
 
-
-
-                    try {
-                        // Some upstreams include multiple SSE frames on one line; split and parse each.
-                        val segments = payload.split("data:").map { it.trim() }.filter { it.isNotEmpty() }
-                        for (seg in segments) {
-                            val direct = parseContentFromJsonObject(seg)
-                            if (!direct.isNullOrEmpty()) {
-                                emit(direct)
-                            } else {
-                                // salvage from first {..} within the segment
-                                val start = seg.indexOf('{')
-                                val end = seg.lastIndexOf('}')
-                                if (start != -1 && end != -1 && end > start) {
-                                    val candidate = seg.substring(start, end + 1)
-                                    val salvaged = parseContentFromJsonObject(candidate)
-                                    if (!salvaged.isNullOrEmpty()) emit(salvaged)
-                                }
+                        try {
+                            val chatResponse = json.decodeFromString<ChatResponse>(segment)
+                            chatResponse.choices.firstOrNull()?.let { choice ->
+                                choice.delta?.content?.let { emit(it) }
+                                choice.message?.content?.let { emit(it) }
+                            }
+                        } catch (e: Exception) {
+                            // Salvage logic for partial/malformed JSON
+                            val start = segment.indexOf('{')
+                            val end = segment.lastIndexOf('}')
+                            if (start != -1 && end != -1 && end > start) {
+                                try {
+                                    val candidate = segment.substring(start, end + 1)
+                                    val chatResponse = json.decodeFromString<ChatResponse>(candidate)
+                                    chatResponse.choices.firstOrNull()?.delta?.content?.let { emit(it) }
+                                } catch (_: Exception) {}
                             }
                         }
-                        continue
-                    } catch (e: Exception) {
-                        // salvage block below
-                    }
-
-                    try {
-                        val direct = parseContentFromJsonObject(payload)
-                        if (!direct.isNullOrEmpty()) {
-                            emit(direct)
-                            continue
-                        }
-
-
-                        // If the payload wasn't valid JSON (or didn't decode), try salvage.
-                        val start = payload.indexOf('{')
-                        val end = payload.lastIndexOf('}')
-                        if (start != -1 && end != -1 && end > start) {
-                            val candidate = payload.substring(start, end + 1)
-                            if (candidate != payload) {
-                                val salvaged = parseContentFromJsonObject(candidate)
-                                if (!salvaged.isNullOrEmpty()) emit(salvaged)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Skipping non-JSON/partial chunk. raw='$truncated'", e)
                     }
                 }
             }

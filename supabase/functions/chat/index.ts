@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-
 const NVIDIA_API_KEY = Deno.env.get('NVIDIA_API_KEY')
-const NVIDIA_CHAT_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
-const NVIDIA_MODELS_URL = 'https://integrate.api.nvidia.com/v1/models'
+const DEFAULT_GEMINI_API_KEY = "AIzaSyB2W1hw2MGtRmwJ9b1XERO0R1b7fyJ1VWs"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-gemini-api-key, x-openai-api-key, x-groq-api-key',
 }
 
 serve(async (req) => {
@@ -15,99 +13,103 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  if (!NVIDIA_API_KEY) {
-    return new Response(JSON.stringify({
-      error: "NVIDIA_API_KEY is not set in Supabase project secrets.",
-      hint: "Run: supabase secrets set NVIDIA_API_KEY=your_key"
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   try {
-    // Handle GET request to list models
     if (req.method === 'GET') {
-      const response = await fetch(NVIDIA_MODELS_URL, {
+      const response = await fetch('https://integrate.api.nvidia.com/v1/models', {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${NVIDIA_API_KEY}`,
-        },
+        headers: { 'Authorization': `Bearer ${NVIDIA_API_KEY}` },
       })
-
-      if (!response.ok) {
-        const error = await response.text()
-        return new Response(JSON.stringify({ error: "NVIDIA Models API failed", details: error }), {
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      const data = await response.json()
+      const data = response.ok ? await response.json() : { data: [] }
+      
+      // Inject third-party models
+      const thirdPartyModels = [
+        { id: "gemini-flash-latest", object: "model", owned_by: "google" },
+        { id: "gpt-4o", object: "model", owned_by: "openai" },
+        { id: "gpt-4o-mini", object: "model", owned_by: "openai" },
+        { id: "llama-3.1-70b-versatile", object: "model", owned_by: "groq" },
+        { id: "llama3-groq-70b-8192-tool-use-preview", object: "model", owned_by: "groq" }
+      ]
+      
+      data.data = [...(data.data || []), ...thirdPartyModels]
+      
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const body = await req.json()
-    const { messages, model, stream = true, temperature = 0.5, max_tokens = 1024 } = body
+    let body;
+    try {
+      body = JSON.parse(await req.text())
+    } catch (e) {
+      throw new Error(`Failed to parse body: ${e.message}`)
+    }
+    const { messages, model = 'meta/llama-3.1-70b-instruct', stream = true, temperature = 0.5, max_tokens = 1024 } = body
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response(JSON.stringify({ error: "Messages array is required and cannot be empty" }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(JSON.stringify({ error: "Messages array is empty" }), { status: 400, headers: corsHeaders })
     }
 
-    const response = await fetch(NVIDIA_CHAT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${NVIDIA_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: model || 'meta/llama-3.1-8b-instruct',
-        messages,
-        stream,
-        temperature,
-        top_p: 1,
-        max_tokens,
-      }),
-    })
+    const customGemini = req.headers.get('x-gemini-api-key')
+    const customOpenai = req.headers.get('x-openai-api-key')
+    const customGroq = req.headers.get('x-groq-api-key')
+
+    const isGemini = model.startsWith('gemini')
+    const isOpenAI = model.startsWith('gpt')
+    const isGroq = model.includes('groq') || model === 'llama-3.1-70b-versatile'
+    
+    let response;
+
+    if (isGemini) {
+      const apiKey = customGemini || DEFAULT_GEMINI_API_KEY
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${stream ? 'streamGenerateContent?alt=sse' : 'generateContent'}`
+      const contents = messages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }))
+
+      response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({ contents })
+      })
+    } else if (isOpenAI) {
+      if (!customOpenai) throw new Error("OpenAI API key missing. Add it in Settings > Custom Providers.")
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customOpenai}` },
+        body: JSON.stringify({ model, messages, stream, temperature, max_tokens })
+      })
+    } else if (isGroq) {
+      if (!customGroq) throw new Error("Groq API key missing. Add it in Settings > Custom Providers.")
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customGroq}` },
+        body: JSON.stringify({ model, messages, stream, temperature, max_tokens })
+      })
+    } else {
+      if (!NVIDIA_API_KEY) throw new Error("NVIDIA_API_KEY is not set.")
+      response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${NVIDIA_API_KEY}` },
+        body: JSON.stringify({ model, messages, stream, temperature, max_tokens })
+      })
+    }
 
     if (!response.ok) {
-      // Upstream may return non-JSON payloads (including stream-like text),
-      // so never assume response.json() will succeed.
-      const errorText = await response.text()
-      console.error("NVIDIA API Error (text):", errorText)
-      return new Response(JSON.stringify({
-        error: "NVIDIA Chat API failed",
-        upstream_status: response.status,
-        details: errorText
-      }), {
-        status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      const err = await response.text()
+      return new Response(JSON.stringify({ error: "API failed", details: err }), { status: response.status, headers: corsHeaders })
     }
 
-
     if (stream) {
-      // The upstream NVIDIA stream is not guaranteed to be SSE formatted.
-      // The app expects SSE-ish `data: <json>` lines; normalize the stream to that.
-      const stream = response.body
-      if (!stream) {
-        return new Response(JSON.stringify({ error: 'NVIDIA returned empty stream body' }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      const resStream = response.body
+      if (!resStream) throw new Error('Empty stream')
 
       const decoder = new TextDecoder()
       const encoder = new TextEncoder()
 
       const normalized = new ReadableStream<Uint8Array>({
         async start(controller) {
-          const reader = stream.getReader()
+          const reader = resStream.getReader()
           let buffer = ''
 
           while (true) {
@@ -115,9 +117,6 @@ serve(async (req) => {
             if (done) break
 
             buffer += decoder.decode(value, { stream: true })
-
-            // Best-effort line splitting for SSE upstreams;
-            // for raw chunk streams, JSON objects typically appear within lines anyway.
             const parts = buffer.split(/\r?\n/)
             buffer = parts.pop() ?? ''
 
@@ -125,58 +124,47 @@ serve(async (req) => {
               const line = part.trim()
               if (!line) continue
 
-              // If upstream already provides SSE frames, forward them.
               if (line.startsWith('data:')) {
-                controller.enqueue(encoder.encode(line + '\n'))
+                if (isGemini) {
+                  const jsonStr = line.substring(5).trim()
+                  if (jsonStr === '[DONE]') {
+                    controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                    continue
+                  }
+                  try {
+                    const data = JSON.parse(jsonStr)
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+                    if (text) {
+                      const transformed = { choices: [{ delta: { content: text } }] }
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(transformed)}\n\n`))
+                    }
+                  } catch (e) {}
+                } else {
+                  controller.enqueue(encoder.encode(line + '\n\n'))
+                }
                 continue
               }
-
-              // Otherwise, wrap the raw line/chunk as an SSE data payload.
-              controller.enqueue(encoder.encode(`data: ${line}\n`))
-
-              // If the chunk is an end marker, also terminate.
-              if (line === '[DONE]') {
-                controller.enqueue(encoder.encode('data: [DONE]\n'))
-                controller.close()
-                return
-              }
+              controller.enqueue(encoder.encode(`data: ${line}\n\n`))
             }
           }
 
-          // Flush remaining buffer
           const tail = buffer.trim()
           if (tail) {
-            if (tail.startsWith('data:')) {
-              controller.enqueue(encoder.encode(tail + '\n'))
-            } else {
-              controller.enqueue(encoder.encode(`data: ${tail}\n`))
-            }
+            if (tail.startsWith('data:')) controller.enqueue(encoder.encode(tail + '\n\n'))
+            else controller.enqueue(encoder.encode(`data: ${tail}\n\n`))
           }
-
-          controller.enqueue(encoder.encode('data: [DONE]\n'))
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
           controller.close()
         },
       })
 
       return new Response(normalized, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
       })
     } else {
-      const data = await response.json()
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(JSON.stringify(await response.json()), { headers: corsHeaders })
     }
-
   } catch (error) {
-    console.error("Function Error:", error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
   }
 })

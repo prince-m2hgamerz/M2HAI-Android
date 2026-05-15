@@ -99,10 +99,26 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun uploadAvatar(bytes: ByteArray): Result<String> = runCatching {
         val userId = supabaseService.getCurrentUserId() ?: throw Exception("User not logged in")
-        val fileName = "${userId}_avatar.jpg"
+        val fileName = "$userId/${userId}_avatar.jpg"
+        
+        try {
+            storage.createBucket("profile-images") {
+                public = true
+            }
+        } catch (e: Exception) {
+            // Bucket might already exist or permission denied
+        }
+
         val bucket = storage["profile-images"]
-        bucket.upload(fileName, bytes, upsert = true)
-        bucket.publicUrl(fileName)
+        try {
+            bucket.upload(fileName, bytes, upsert = true)
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            if (e.message?.contains("row level security", ignoreCase = true) == true) {
+                throw Exception("Failed to upload: RLS Policy missing. Please run the SQL fix in Supabase Dashboard.")
+            }
+            throw e
+        }
     }
 }
 
@@ -254,7 +270,7 @@ class ChatRepositoryImpl @Inject constructor(
         role: MessageRole,
         content: String,
         attachments: List<Attachment>
-    ): Result<Unit> = runCatching {
+    ): Result<Message> = runCatching {
         val request = CreateMessageRequest(
             chat_id = chatId,
             role = role.name.lowercase(),
@@ -263,7 +279,9 @@ class ChatRepositoryImpl @Inject constructor(
         )
         
         val messageDto = supabaseService.createMessage(request)
-        messageDao.insertMessage(messageDto.toDomain().toEntity())
+        val domainMessage = messageDto.toDomain()
+        messageDao.insertMessage(domainMessage.toEntity())
+        domainMessage
     }
 
     override suspend fun streamChatResponse(
@@ -330,16 +348,16 @@ class ModelRepositoryImpl @Inject constructor(
 ) : DomainModelRepository {
 
     override suspend fun getAvailableModels(): List<AIModel> {
-        val localModels = aiModelDao.getAllModels()
-        
-        if (localModels.isEmpty()) {
+        return try {
             val remoteModels = supabaseService.getAIModels()
             val entities = remoteModels.map { it.toEntity() }
+            // Optional: aiModelDao.clear() if needed, but insertModels with conflict strategy REPLACE works
             aiModelDao.insertModels(entities)
-            return remoteModels.map { it.toDomain() }
+            remoteModels.map { it.toDomain() }
+        } catch (e: Exception) {
+            val localModels = aiModelDao.getAllModels()
+            localModels.map { it.toDomain() }
         }
-        
-        return localModels.map { it.toDomain() }
     }
 
     override suspend fun getModels(): List<AIModel> = getAvailableModels()

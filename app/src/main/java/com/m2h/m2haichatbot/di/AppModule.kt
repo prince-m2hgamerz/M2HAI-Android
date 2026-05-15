@@ -84,6 +84,9 @@ object AppModule {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(telegramInterceptor)
+            .connectTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 
@@ -120,9 +123,10 @@ object AppModule {
     fun provideNvidiaAIService(
         okHttpClient: OkHttpClient,
         json: Json,
-        auth: Auth
+        auth: Auth,
+        preferenceRepository: com.m2h.m2haichatbot.data.repository.PreferenceRepository
     ): NvidiaAIService {
-        return NvidiaAIService(okHttpClient, json, auth)
+        return NvidiaAIService(okHttpClient, json, auth, preferenceRepository)
     }
 
     @Provides
