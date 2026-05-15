@@ -47,14 +47,25 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = state.chats.firstOrNull()?.userId?.take(2)?.uppercase() ?: "PK", 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, 
-                                style = MaterialTheme.typography.labelSmall
-                            )
+                            if (state.userAvatarUrl != null) {
+                                coil.compose.AsyncImage(
+                                    model = state.userAvatarUrl,
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = state.userFullName?.take(1)?.uppercase() ?: "U", 
+                                    color = MaterialTheme.colorScheme.primary, 
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 },
