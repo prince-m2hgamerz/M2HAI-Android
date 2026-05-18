@@ -30,6 +30,7 @@ interface ChatRepository {
     suspend fun getMessages(chatId: String): Flow<List<Message>>
     suspend fun saveMessage(chatId: String, role: MessageRole, content: String, attachments: List<Attachment> = emptyList()): Result<Message>
     suspend fun streamChatResponse(chatId: String, messages: List<Message>, modelId: String): Flow<StreamResponse>
+    suspend fun submitMessageFeedback(message: Message, action: String, modelId: String? = null): Result<Unit>
     
     suspend fun uploadAttachment(fileName: String, bytes: ByteArray, mimeType: String): Result<Attachment>
     suspend fun syncChats(): Result<Unit>
@@ -39,4 +40,5 @@ interface ModelRepository {
     suspend fun getAvailableModels(): List<AIModel>
     suspend fun getModels(): List<AIModel> // Alias for convenience
     suspend fun getModelById(modelId: String): AIModel?
+    suspend fun getAppSettings(): AppSettings
 }

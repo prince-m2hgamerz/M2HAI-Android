@@ -24,6 +24,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -49,6 +50,12 @@ object AppModule {
     fun provideOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
+            redactHeader("Authorization")
+            redactHeader("apikey")
+            redactHeader("x-gemini-api-key")
+            redactHeader("x-nvidia-api-key")
+            redactHeader("x-openai-api-key")
+            redactHeader("x-groq-api-key")
         }
         
         val telegramInterceptor = Interceptor { chain ->
@@ -68,6 +75,8 @@ object AppModule {
                     )
                 }
                 response
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (!request.url.toString().contains("telegram.org")) {
                     TelegramLogger.logError(
@@ -85,7 +94,7 @@ object AppModule {
             .addInterceptor(loggingInterceptor)
             .addInterceptor(telegramInterceptor)
             .connectTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }

@@ -10,6 +10,8 @@ import com.m2h.m2haichatbot.domain.repository.AuthRepository
 import com.m2h.m2haichatbot.domain.repository.ChatRepository
 import com.m2h.m2haichatbot.domain.repository.ModelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,7 +24,9 @@ data class ChatState(
     val error: String? = null,
     val chatId: String = "",
     val modelId: String = "",
-    val userAvatarUrl: String? = null
+    val userAvatarUrl: String? = null,
+    val appEnabled: Boolean = true,
+    val maintenanceMessage: String = ""
 )
 
 @HiltViewModel
@@ -35,11 +39,13 @@ class ChatViewModel @Inject constructor(
 
     private val chatId: String = savedStateHandle.get<String>("chatId") ?: ""
 
-    private val _state = MutableStateFlow(ChatState(chatId = chatId, modelId = "gemini-flash-latest"))
+    private val _state = MutableStateFlow(ChatState(chatId = chatId, modelId = ""))
     val state: StateFlow<ChatState> = _state.asStateFlow()
 
     private val _availableModels = MutableStateFlow<List<AIModel>>(emptyList())
     val availableModels: StateFlow<List<AIModel>> = _availableModels.asStateFlow()
+
+    private var streamingJob: Job? = null
 
     fun setModel(modelId: String) {
         _state.update { it.copy(modelId = modelId) }
@@ -64,22 +70,30 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val allModels = modelRepository.getAvailableModels()
-                val allowedIds = setOf(
-                    "gemini-flash-latest",
-                    "meta/llama-3.1-70b-instruct",
-                    "meta/llama-3.1-8b-instruct",
-                    "meta/llama-3.2-90b-vision-instruct",
-                    "google/gemma-2-9b-it",
-                    "google/gemma-2-2b-it",
-                    "nvidia/llama-3.1-nemotron-70b-instruct",
-                    "stabilityai/sdxl"
-                )
-                val models = allModels.filter { it.id in allowedIds }.sortedBy { it.name }
+                val settings = modelRepository.getAppSettings()
+                val models = allModels.sortedWith(compareBy<AIModel> { it.provider }.thenBy { it.name })
                 _availableModels.value = models
                 
-                if (_state.value.modelId.isEmpty() && models.isNotEmpty()) {
-                    val defaultId = if (models.any { it.id == "gemini-flash-latest" }) "gemini-flash-latest" else models.first().id
-                    _state.update { it.copy(modelId = defaultId) }
+                val currentModelId = _state.value.modelId
+                val defaultId = models.firstOrNull { it.id == settings.defaultModelId }?.id
+                    ?: models.firstOrNull()?.id
+                    ?: ""
+
+                if ((currentModelId.isEmpty() || models.none { it.id == currentModelId }) && defaultId.isNotEmpty()) {
+                    _state.update {
+                        it.copy(
+                            modelId = defaultId,
+                            appEnabled = settings.appEnabled,
+                            maintenanceMessage = settings.maintenanceMessage
+                        )
+                    }
+                } else {
+                    _state.update {
+                        it.copy(
+                            appEnabled = settings.appEnabled,
+                            maintenanceMessage = settings.maintenanceMessage
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 // Ignore or handle
@@ -114,23 +128,28 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage(content: String) {
         if (content.isBlank()) return
+        if (!_state.value.appEnabled) {
+            _state.update { it.copy(error = it.maintenanceMessage.ifBlank { "M2HAI is temporarily unavailable. Please try again later." }) }
+            return
+        }
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             val currentChatId = _state.value.chatId
-            val baseModel = _state.value.modelId
-            var apiModel = baseModel
-            
-            // Auto-switch to image model if requested
-            val imageKeywords = listOf("generate", "create", "draw", "make", "show", "paint")
-            val isImageRequest = imageKeywords.any { content.contains(it, ignoreCase = true) } && 
-                               (content.contains("image", ignoreCase = true) || content.contains("picture", ignoreCase = true) || content.contains("photo", ignoreCase = true))
-            
-            if (isImageRequest) {
-                apiModel = "stabilityai/sdxl"
+            val baseModel = _state.value.modelId.ifBlank {
+                _availableModels.value.firstOrNull { it.isActive }?.id
+                    ?: runCatching { modelRepository.getAppSettings().defaultModelId }.getOrDefault("")
             }
-
+            if (baseModel.isBlank()) {
+                _state.update { it.copy(isLoading = false, error = "No active AI models are available. Ask the administrator to enable a model.") }
+                return@launch
+            }
+            if (_state.value.modelId.isBlank()) {
+                _state.update { it.copy(modelId = baseModel) }
+            }
+            val apiModel = baseModel
+            
             val actualChatId = if (currentChatId == "new" || currentChatId.isEmpty()) {
                 try {
                     val title = if (content.length > 30) "${content.take(27)}..." else content
@@ -148,15 +167,13 @@ class ChatViewModel @Inject constructor(
 
             chatRepository.saveMessage(actualChatId, MessageRole.USER, content)
                 .onSuccess { savedMessage ->
-                    _state.update { currentState -> 
-                        val newMessages = if (currentState.messages.any { it.id == savedMessage.id }) {
-                            currentState.messages
-                        } else {
-                            currentState.messages + savedMessage
-                        }
-                        currentState.copy(messages = newMessages)
+                    val messagesSnapshot = if (_state.value.messages.any { it.id == savedMessage.id }) {
+                        _state.value.messages
+                    } else {
+                        _state.value.messages + savedMessage
                     }
-                    streamAIResponse(actualChatId, apiModel)
+                    _state.update { it.copy(messages = messagesSnapshot) }
+                    streamAIResponse(actualChatId, apiModel, messagesSnapshot)
                 }
                 .onFailure { error ->
                     _state.update { 
@@ -169,8 +186,13 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun streamAIResponse(chatId: String, modelId: String? = null) {
-        viewModelScope.launch {
+    private fun streamAIResponse(
+        chatId: String,
+        modelId: String? = null,
+        messagesForApi: List<Message>? = null
+    ) {
+        streamingJob?.cancel()
+        streamingJob = viewModelScope.launch {
             _state.update { 
                 it.copy(
                     isLoading = false,
@@ -180,7 +202,7 @@ class ChatViewModel @Inject constructor(
             }
 
             try {
-                val messages = _state.value.messages
+                val messages = messagesForApi ?: _state.value.messages
                 val targetModelId = modelId ?: _state.value.modelId
 
                 chatRepository.streamChatResponse(chatId, messages, targetModelId)
@@ -196,6 +218,9 @@ class ChatViewModel @Inject constructor(
                             _state.update { it.copy(streamingContent = "") }
                         }
                     }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(isStreaming = false, streamingContent = "") }
+                throw e
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
@@ -204,7 +229,27 @@ class ChatViewModel @Inject constructor(
                         error = e.message ?: "Streaming failed"
                     )
                 }
+            } finally {
+                streamingJob = null
             }
+        }
+    }
+
+    fun stopStreaming() {
+        streamingJob?.cancel()
+        streamingJob = null
+        _state.update {
+            it.copy(
+                isLoading = false,
+                isStreaming = false,
+                streamingContent = ""
+            )
+        }
+    }
+
+    fun submitMessageAction(message: Message, action: String) {
+        viewModelScope.launch {
+            chatRepository.submitMessageFeedback(message, action, _state.value.modelId)
         }
     }
 

@@ -17,9 +17,6 @@ android {
         applicationId = "com.m2h.m2haichatbot"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -35,6 +32,10 @@ android {
         }
 
         fun envString(key: String): String = env.getProperty(key) ?: ""
+        fun envInt(key: String, fallback: Int): Int = env.getProperty(key)?.toIntOrNull() ?: fallback
+
+        versionCode = envInt("APP_VERSION_CODE", 1)
+        versionName = envString("APP_VERSION_NAME").ifBlank { "1.0" }
 
         buildConfigField("String", "SUPABASE_URL", "\"${envString("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${envString("SUPABASE_ANON_KEY")}\"")

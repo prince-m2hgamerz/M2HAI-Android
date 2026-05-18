@@ -31,5 +31,6 @@ data class AIModelEntity(
     val name: String,
     val provider: String,
     val description: String?,
-    val isFree: Boolean
+    val isFree: Boolean,
+    val isActive: Boolean = true
 )

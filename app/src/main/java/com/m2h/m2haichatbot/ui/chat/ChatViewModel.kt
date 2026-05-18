@@ -10,6 +10,7 @@ import com.m2h.m2haichatbot.domain.repository.ModelRepository
 import com.m2h.m2haichatbot.utils.VoiceToTextParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -142,7 +143,18 @@ class ChatViewModel @Inject constructor(
             }
 
             repository.saveMessage(chat.id, MessageRole.USER, content, attachments)
-            startAIResponse(chat, modelId)
+                .onSuccess { savedMessage ->
+                    val snapshot = if (_uiState.value.messages.any { it.id == savedMessage.id }) {
+                        _uiState.value.messages
+                    } else {
+                        _uiState.value.messages + savedMessage
+                    }
+                    _uiState.update { it.copy(messages = snapshot) }
+                    startAIResponse(chat, modelId, snapshot)
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
         }
     }
 
@@ -153,17 +165,17 @@ class ChatViewModel @Inject constructor(
 
         stopStreaming()
         streamingJob = viewModelScope.launch {
-            startAIResponse(chat, _uiState.value.selectedModelId)
+            startAIResponse(chat, _uiState.value.selectedModelId, messages)
         }
     }
 
-    private suspend fun startAIResponse(chat: Chat, modelId: String) {
+    private suspend fun startAIResponse(chat: Chat, modelId: String, messagesForApi: List<Message>? = null) {
         _uiState.update { it.copy(isStreaming = true, isLoading = false) }
         
         val aiMessageId = UUID.randomUUID().toString()
         
         // Use the messages BEFORE adding the temporary one for the API call
-        val historyForApi = _uiState.value.messages.filter { it.content.isNotBlank() }
+        val historyForApi = (messagesForApi ?: _uiState.value.messages).filter { it.content.isNotBlank() }
 
         val tempAiMessage = Message(
             id = aiMessageId,
@@ -187,6 +199,8 @@ class ChatViewModel @Inject constructor(
                     )
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             _uiState.update { state ->
                 state.copy(

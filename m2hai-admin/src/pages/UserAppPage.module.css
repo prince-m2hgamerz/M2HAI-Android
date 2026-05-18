@@ -1,0 +1,1295 @@
+.shell {
+  height: 100dvh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  z-index: 70;
+}
+
+.sidebarTop,
+.brand,
+.account,
+.topbar,
+.message,
+.responseActions,
+.modelButton,
+.modelOption {
+  display: flex;
+  align-items: center;
+}
+
+.sidebarTop {
+  min-height: 34px;
+  justify-content: space-between;
+}
+
+.brand {
+  min-width: 0;
+  gap: 9px;
+  color: var(--primary);
+}
+
+.brand strong {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.newChat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  flex-shrink: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: var(--rounded-pill);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebarTools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebarTools button,
+.topAction,
+.toolGrid button,
+.promptLibrary button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+  font-size: 13px;
+  transition: background 0.16s, color 0.16s, border-color 0.16s, transform 0.16s;
+}
+
+.sidebarTools button:hover,
+.topAction:hover:not(:disabled),
+.toolGrid button:hover,
+.promptLibrary button:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+.search,
+.modelSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  flex-shrink: 0;
+  padding: 0 11px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+  color: var(--text-muted);
+}
+
+.search input,
+.modelSearch input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.chatList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1;
+  padding-right: 2px;
+}
+
+.emptyList {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.chatRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--rounded-md);
+}
+
+.chatRow:hover,
+.chatRowActive {
+  background: var(--bg-secondary);
+}
+
+.chatRow > button:first-child {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 13px;
+}
+
+.chatRow span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatActions {
+  display: none;
+  align-items: center;
+  gap: 1px;
+  padding-right: 6px;
+}
+
+.chatRow:hover .chatActions,
+.chatRowActive .chatActions {
+  display: flex;
+}
+
+.chatActions button,
+.account > button:last-child,
+.mobileOnly,
+.menuButton,
+.collapseButton,
+.topAction,
+.responseActions button,
+.modalHeader button,
+.modelPanelHeader button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--rounded-sm);
+}
+
+.chatActions button {
+  width: 24px;
+  height: 24px;
+}
+
+.chatActions button:hover,
+.responseActions button:hover,
+.modelPanelHeader button:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+}
+
+.account {
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.account > button:first-child {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+  padding: 9px;
+  text-align: left;
+}
+
+.account span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.account > button:last-child,
+.menuButton,
+.collapseButton,
+.topAction,
+.mobileOnly {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.main {
+  min-width: 0;
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.topbar {
+  min-width: 0;
+  height: 64px;
+  gap: 10px;
+  padding: 0 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbarTitle {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbarTitle span {
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbarTitle small {
+  color: var(--text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelButton {
+  max-width: 300px;
+  min-width: 190px;
+  height: 38px;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.modelButton span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-weight: 500;
+}
+
+.modelButton small {
+  max-width: 78px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.modelButton:hover {
+  border-color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+.topAction:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.menuButton {
+  display: none;
+}
+
+.error {
+  grid-row: 2;
+  align-self: start;
+  z-index: 2;
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  border-radius: var(--rounded-sm);
+  background: var(--danger-dim);
+  color: var(--danger-deep);
+  font-size: 13px;
+}
+
+.welcome {
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  width: min(100%, 820px);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.welcomeIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  color: var(--on-primary);
+  background: var(--primary);
+  border-radius: var(--rounded-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.welcome h1 {
+  color: var(--primary);
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1;
+  letter-spacing: -2px;
+  font-weight: 600;
+}
+
+.welcome p {
+  max-width: 610px;
+  margin: 16px auto 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.promptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.toolGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.promptGrid button {
+  min-height: 54px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-lg);
+  color: var(--text-primary);
+  text-align: left;
+  font-size: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.promptGrid button:hover {
+  border-color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+.messages {
+  grid-row: 2;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px max(20px, calc((100vw - 1120px) / 2)) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.message {
+  min-width: 0;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.userMessage {
+  justify-content: flex-end;
+}
+
+.aiMessage {
+  justify-content: flex-start;
+}
+
+.aiAvatar {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+.messageBody {
+  max-width: min(760px, 86%);
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 13px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.userMessage .messageBody {
+  max-width: min(620px, 82%);
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+  border-bottom-right-radius: 6px;
+}
+
+.aiMessage .messageBody {
+  border-bottom-left-radius: 6px;
+}
+
+.messageBody p {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.markdown {
+  min-width: 0;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre {
+  margin: 0 0 10px;
+}
+
+.markdown p:last-child,
+.markdown ul:last-child,
+.markdown ol:last-child,
+.markdown pre:last-child {
+  margin-bottom: 0;
+}
+
+.markdown code {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 12px;
+  border-radius: var(--rounded-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+.generatedImage {
+  display: block;
+  width: min(100%, 520px);
+  max-height: 520px;
+  object-fit: contain;
+  border-radius: var(--rounded-md);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  background: var(--bg-secondary);
+}
+
+.responseActions {
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.responseActions button {
+  width: 26px;
+  height: 26px;
+}
+
+.actionActive {
+  color: var(--primary) !important;
+  background: var(--bg-secondary) !important;
+}
+
+.streamingLine {
+  height: 2px;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.1s linear infinite;
+}
+
+.composerWrap {
+  grid-row: 3;
+  align-self: end;
+  min-width: 0;
+  padding: 12px 20px max(18px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg-primary) 86%, transparent);
+}
+
+.composer {
+  max-width: 920px;
+  margin: 0 auto;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+}
+
+.composerChips,
+.promptToolbar,
+.promptRightActions,
+.composerMeta,
+.composerActions {
+  display: flex;
+  align-items: center;
+}
+
+.composerChips {
+  gap: 6px;
+}
+
+.composerChip {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-pill);
+  font-size: 12px;
+}
+
+.composerChipActive {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.composerField {
+  min-width: 0;
+  display: block;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.composerField textarea {
+  width: 100%;
+  min-height: 48px;
+  max-height: 180px;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.composerField textarea:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.imagePreviewRow {
+  position: relative;
+  width: fit-content;
+  padding: 4px 4px 0;
+}
+
+.imagePreviewButton {
+  display: block;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+.imagePreviewButton img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-full);
+  backdrop-filter: blur(8px);
+}
+
+.promptToolbar {
+  position: relative;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.promptIconButton,
+.toolsButton,
+.activeToolChip {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rounded-full);
+  color: var(--text-primary);
+  background: transparent;
+  transition: background 0.16s, color 0.16s;
+}
+
+.promptIconButton {
+  width: 34px;
+  flex-shrink: 0;
+}
+
+.promptIconButton:hover,
+.toolsButton:hover,
+.activeToolChip:hover {
+  background: var(--bg-secondary);
+}
+
+.toolsButton {
+  gap: 7px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.toolsMenuWrap {
+  position: relative;
+}
+
+.toolsPopover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 20;
+  width: min(260px, calc(100vw - 36px));
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+
+.toolsPopover button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  background: transparent;
+  border-radius: var(--rounded-sm);
+  font-size: 13px;
+  text-align: left;
+}
+
+.toolsPopover button:hover {
+  background: var(--bg-secondary);
+}
+
+.activeToolChip {
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  font-size: 13px;
+}
+
+.promptRightActions {
+  margin-left: auto;
+  gap: 8px;
+}
+
+.sendButton,
+.stopButton {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rounded-full);
+  font-weight: 500;
+}
+
+.sendButton {
+  color: var(--on-primary);
+  background: var(--primary);
+}
+
+.sendButton:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.stopButton {
+  padding: 0 12px;
+  color: var(--danger-deep);
+  background: var(--danger-dim);
+}
+
+.composerHint {
+  max-width: 880px;
+  margin: 7px auto 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.modelOverlay,
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.modelPanel,
+.profileModal {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.modelPanel {
+  width: min(100%, 540px);
+  max-height: min(720px, calc(100dvh - 40px));
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.modelPanelHeader,
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.modelPanelHeader span {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.modelPanelHeader h2,
+.modalHeader h2 {
+  color: var(--primary);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.7px;
+}
+
+.modelPanelHeader button,
+.modalHeader button {
+  width: 34px;
+  height: 34px;
+}
+
+.modelList {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.modelOption {
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+  padding: 12px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+  transition: background 0.16s, border-color 0.16s;
+}
+
+.modelOption:hover,
+.modelOptionActive {
+  border-color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+.modelOptionIcon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--rounded-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--primary);
+}
+
+.modelOptionText {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.modelOptionText strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modelOptionText small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.modelOptionText em {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.profileModal label {
+  display: grid;
+  gap: 6px;
+}
+
+.profileModal label span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.profileModal input {
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+  color: var(--text-primary);
+}
+
+.promptLibrary {
+  display: grid;
+  gap: 10px;
+}
+
+.promptLibrary button {
+  min-height: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  padding: 13px;
+  text-align: left;
+}
+
+.promptLibrary strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.promptLibrary span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.saveProfile {
+  min-height: 40px;
+  border-radius: var(--rounded-pill);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 500;
+}
+
+.loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.backdrop,
+.mobileOnly {
+  display: none;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: min(92vw, 332px);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.32);
+  }
+
+  .mobileOnly,
+  .menuButton {
+    display: inline-flex;
+  }
+
+  .collapseButton {
+    display: none;
+  }
+
+  .main {
+    height: 100dvh;
+  }
+
+  .modelButton {
+    min-width: 164px;
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell,
+  .main {
+    height: 100svh;
+    min-height: 100svh;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 52px;
+    padding: 7px 9px;
+    gap: 7px;
+  }
+
+  .topbarTitle span {
+    font-size: 14px;
+  }
+
+  .topbarTitle small {
+    display: none;
+  }
+
+  .topAction {
+    display: none;
+  }
+
+  .modelButton {
+    width: 38px;
+    min-width: 38px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .modelButton span,
+  .modelButton small {
+    display: none;
+  }
+
+  .welcome {
+    align-self: stretch;
+    padding: 16px 12px 10px;
+  }
+
+  .welcomeIcon {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 10px;
+  }
+
+  .welcome h1 {
+    font-size: 27px;
+    letter-spacing: -1px;
+  }
+
+  .welcome p {
+    font-size: 13px;
+    line-height: 1.45;
+    margin-top: 8px;
+  }
+
+  .messages {
+    padding: 12px 8px 16px;
+    gap: 12px;
+  }
+
+  .aiAvatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .message {
+    gap: 7px;
+  }
+
+  .messageBody,
+  .userMessage .messageBody {
+    max-width: 92%;
+    padding: 11px 12px;
+    border-radius: 14px;
+  }
+
+  .markdown,
+  .messageBody p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .promptGrid,
+  .toolGrid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .promptGrid {
+    margin-top: 16px;
+  }
+
+  .promptGrid button {
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: var(--rounded-md);
+  }
+
+  .composerWrap {
+    padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .composer {
+    gap: 4px;
+    padding: 7px;
+    border-radius: 22px;
+  }
+
+  .composerField textarea {
+    min-height: 40px;
+    max-height: 126px;
+    font-size: 14px;
+    padding: 9px 10px;
+  }
+
+  .promptToolbar {
+    gap: 5px;
+    padding: 0 2px 2px;
+  }
+
+  .promptIconButton,
+  .sendButton {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .toolsButton {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .activeToolChip {
+    min-height: 32px;
+    max-width: 112px;
+    padding: 0 8px;
+  }
+
+  .activeToolChip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stopButton {
+    height: 32px;
+    min-width: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .composerHint {
+    display: none;
+  }
+
+  .modelOverlay {
+    align-items: end;
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .modelPanel {
+    width: 100%;
+    max-height: min(78dvh, 680px);
+    border-radius: 16px 16px 0 0;
+    padding: 18px;
+  }
+
+  .modalOverlay {
+    padding: 12px;
+  }
+
+  .profileModal {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar {
+    width: min(94vw, 320px);
+    padding: 14px;
+  }
+
+  .sidebarTools {
+    grid-template-columns: 1fr;
+  }
+
+  .chatActions {
+    display: flex;
+  }
+
+  .chatActions button {
+    width: 22px;
+    height: 22px;
+  }
+
+  .account {
+    align-items: stretch;
+  }
+
+  .toolsButton span {
+    display: none;
+  }
+
+  .activeToolChip {
+    max-width: 92px;
+  }
+
+  .promptRightActions {
+    gap: 5px;
+  }
+}

@@ -8,6 +8,7 @@ import com.m2h.m2haichatbot.domain.repository.AuthRepository
 import com.m2h.m2haichatbot.domain.repository.ChatRepository
 import com.m2h.m2haichatbot.domain.repository.ModelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -50,18 +51,17 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val allModels = modelRepository.getAvailableModels()
-                val allowedIds = setOf(
-                    "gemini-flash-latest",
-                    "meta/llama-3.1-70b-instruct",
-                    "meta/llama-3.1-8b-instruct",
-                    "meta/llama-3.2-90b-vision-instruct",
-                    "google/gemma-2-9b-it",
-                    "google/gemma-2-2b-it",
-                    "nvidia/llama-3.1-nemotron-70b-instruct",
-                    "stabilityai/sdxl"
-                )
-                val models = allModels.filter { it.id in allowedIds }.sortedBy { it.name }
-                _state.update { it.copy(models = models, selectedModel = models.firstOrNull { it.id == "gemini-flash-latest" } ?: models.firstOrNull()) }
+                val settings = modelRepository.getAppSettings()
+                val models = allModels.sortedWith(compareBy<AIModel> { it.provider }.thenBy { it.name })
+                _state.update {
+                    it.copy(
+                        models = models,
+                        selectedModel = models.firstOrNull { model -> model.id == settings.defaultModelId }
+                            ?: models.firstOrNull()
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message) }
             }
@@ -98,6 +98,18 @@ class HomeViewModel @Inject constructor(
     fun renameChat(chatId: String, newTitle: String) {
         viewModelScope.launch {
             chatRepository.updateChatTitle(chatId, newTitle)
+        }
+    }
+
+    fun togglePin(chatId: String, isPinned: Boolean) {
+        viewModelScope.launch {
+            chatRepository.togglePin(chatId, isPinned)
+        }
+    }
+
+    fun toggleArchive(chatId: String, isArchived: Boolean) {
+        viewModelScope.launch {
+            chatRepository.toggleArchive(chatId, isArchived)
         }
     }
 

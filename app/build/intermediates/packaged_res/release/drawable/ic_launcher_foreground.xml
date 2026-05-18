@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Main Editorial M Symbol -->
+    <path
+        android:fillColor="#141413"
+        android:pathData="
+            M24,78
+            L24,28
+            L40,52
+            L54,34
+            L68,52
+            L84,28
+            L84,78
+            L74,78
+            L74,46
+            L54,68
+            L34,46
+            L34,78
+            Z"/>
+
+    <!-- AI Accent Dot (formerly circle cx=54, cy=24, r=5) -->
+    <path
+        android:fillColor="#CC785C"
+        android:pathData="M54,19 A5,5 0 1,1 54,29 A5,5 0 1,1 54,19 Z"/>
+
+    <!-- Minimal Circuit Line Left -->
+    <path
+        android:strokeColor="#CC785C"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M14,54 L26,54"/>
+
+    <!-- AI Accent Dot Left (formerly circle cx=12, cy=54, r=2.5) -->
+    <path
+        android:fillColor="#CC785C"
+        android:pathData="M12,51.5 A2.5,2.5 0 1,1 12,56.5 A2.5,2.5 0 1,1 12,51.5 Z"/>
+
+    <!-- Minimal Circuit Line Right -->
+    <path
+        android:strokeColor="#CC785C"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M82,54 L94,54"/>
+
+    <!-- AI Accent Dot Right (formerly circle cx=96, cy=54, r=2.5) -->
+    <path
+        android:fillColor="#CC785C"
+        android:pathData="M96,51.5 A2.5,2.5 0 1,1 96,56.5 A2.5,2.5 0 1,1 96,51.5 Z"/>
+
+</vector>

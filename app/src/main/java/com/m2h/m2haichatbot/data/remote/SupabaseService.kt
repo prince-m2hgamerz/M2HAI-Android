@@ -17,8 +17,11 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -30,7 +33,9 @@ data class ProfileDto(
     val id: String,
     val email: String,
     val full_name: String? = null,
-    val avatar_url: String? = null
+    val avatar_url: String? = null,
+    val is_disabled: Boolean = false,
+    val admin_notes: String? = null
 )
 
 @Serializable
@@ -61,7 +66,35 @@ data class AIModelDto(
     val name: String,
     val provider: String,
     val description: String? = null,
-    val is_free: Boolean = true
+    val is_free: Boolean = true,
+    val is_active: Boolean = true
+)
+
+@Serializable
+data class AppSettingsDto(
+    val id: String = "global",
+    val app_enabled: Boolean = true,
+    val signup_enabled: Boolean = true,
+    val maintenance_message: String = "M2HAI is temporarily unavailable. Please try again later.",
+    val global_announcement: String = "",
+    val default_model_id: String = "meta/llama-3.1-8b-instruct",
+    val image_model_id: String = "black-forest-labs/flux.1-schnell",
+    val system_prompt: String = "",
+    val temperature: Double = 0.5,
+    val max_tokens: Int = 1024,
+    val latest_version_code: Int = 1,
+    val latest_version_name: String = "1.0",
+    val min_supported_version_code: Int = 1,
+    val update_required: Boolean = false,
+    val update_title: String = "Update available",
+    val update_message: String = "",
+    val update_apk_url: String = "",
+    val update_release_notes: String = "",
+    val update_apk_size_mb: Double = 0.0,
+    val update_sha256: String = "",
+    val update_published_at: String = "",
+    val update_channel: String = "stable",
+    val updated_at: String? = null
 )
 
 @Serializable
@@ -77,6 +110,15 @@ data class CreateMessageRequest(
     val role: String,
     val content: String,
     val attachments: List<String> = emptyList()
+)
+
+@Serializable
+data class MessageFeedbackRequest(
+    val message_id: String,
+    val chat_id: String,
+    val user_id: String,
+    val action: String,
+    val model_id: String? = null
 )
 
 class SupabaseService @Inject constructor(
@@ -236,7 +278,8 @@ class SupabaseService @Inject constructor(
                     "name" to (modelId.split("/").lastOrNull() ?: modelId),
                     "provider" to "AI",
                     "description" to "Auto-registered model",
-                    "is_free" to true
+                    "is_free" to true,
+                    "is_active" to true
                 ))
                 Log.i(TAG, "Successfully auto-registered model: $modelId")
             }
@@ -308,9 +351,30 @@ class SupabaseService @Inject constructor(
         }
     }
 
-    suspend fun getAIModels(): List<AIModelDto> {
+    suspend fun submitMessageFeedback(request: MessageFeedbackRequest) {
         try {
-            // First, try to fetch from Edge Function (NVIDIA API list)
+            supabase.from("message_feedback").insert(request)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in submitMessageFeedback", e)
+            throw e
+        }
+    }
+
+    suspend fun getAIModels(): List<AIModelDto> {
+        // Admin-managed DB list is authoritative because it carries is_active/default controls.
+        try {
+            val dbModels = supabase.from("ai_models")
+                .select()
+                .decodeList<AIModelDto>()
+            if (dbModels.isNotEmpty()) {
+                return dbModels
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "DB model list unavailable, falling back to edge catalog", e)
+        }
+
+        try {
+            // Fallback: fetch provider catalog from Edge Function.
             val response: HttpResponse = supabase.functions.invoke("chat") {
                 method = HttpMethod.Get
             }
@@ -324,13 +388,18 @@ class SupabaseService @Inject constructor(
             if (dataArray != null) {
                 val models = dataArray.map { 
                     val obj = it.jsonObject
-                    val modelId = obj["id"]?.jsonPrimitive?.content ?: ""
+                    val modelId = obj["id"]?.jsonPrimitive?.contentOrNull ?: ""
                     AIModelDto(
                         id = modelId,
-                        name = modelId.split("/").lastOrNull() ?: "Unknown",
-                        provider = "NVIDIA",
-                        description = "NIM Model",
-                        is_free = true
+                        name = obj["name"]?.jsonPrimitive?.contentOrNull
+                            ?: modelId.split("/").lastOrNull()?.replace("-", " ")?.replaceFirstChar { char -> char.uppercase() }
+                            ?: "Unknown",
+                        provider = obj["provider"]?.jsonPrimitive?.contentOrNull
+                            ?: inferProvider(modelId),
+                        description = obj["description"]?.jsonPrimitive?.contentOrNull
+                            ?: if (modelId.startsWith("gemini", true)) "Google Gemini chat model" else "NVIDIA NIM chat model",
+                        is_free = obj["is_free"]?.jsonPrimitive?.booleanOrNull ?: true,
+                        is_active = obj["is_active"]?.jsonPrimitive?.booleanOrNull ?: true
                     )
                 }.filter { it.id.isNotEmpty() }
                 
@@ -339,6 +408,9 @@ class SupabaseService @Inject constructor(
                 
                 return models
             }
+        } catch (e: CancellationException) {
+            Log.d(TAG, "Edge model fetch cancelled")
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching models from edge function", e)
             com.m2h.m2haichatbot.utils.TelegramLogger.logError("Failed to fetch models from NVIDIA via Edge Function", e)
@@ -352,6 +424,27 @@ class SupabaseService @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error in getAIModels (DB fallback)", e)
             return emptyList()
+        }
+    }
+
+    suspend fun getAppSettings(): AppSettingsDto {
+        return try {
+            supabase.from("app_settings")
+                .select {
+                    filter { eq("id", "global") }
+                }
+                .decodeSingleOrNull<AppSettingsDto>() ?: AppSettingsDto()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading app settings; using defaults", e)
+            AppSettingsDto()
+        }
+    }
+
+    private fun inferProvider(modelId: String): String {
+        return if (modelId.startsWith("gemini", ignoreCase = true) || modelId.startsWith("models/gemini", ignoreCase = true)) {
+            "Google"
+        } else {
+            "NVIDIA"
         }
     }
 

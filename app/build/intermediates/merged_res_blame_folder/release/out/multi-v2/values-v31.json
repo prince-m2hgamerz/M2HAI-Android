@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.m2h.m2haichatbot.app-mergeReleaseResources-64:/values-v31/values-v31.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\m2hga\\.gradle\\caches\\transforms-4\\095a945f028a7744adbcdd17877a7f72\\transformed\\jetified-core-splashscreen-1.0.1\\res\\values-v31\\values-v31.xml",
+                    "from": {
+                        "startLines": "2,9",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,473",
+                        "endLines": "8,13",
+                        "endColumns": "12,12",
+                        "endOffsets": "468,697"
+                    }
+                }
+            ]
+        }
+    ]
+}

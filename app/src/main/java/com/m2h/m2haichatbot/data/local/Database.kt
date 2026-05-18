@@ -6,7 +6,7 @@ import com.m2h.m2haichatbot.data.local.entities.*
 
 @Database(
     entities = [ChatEntity::class, MessageEntity::class, AIModelEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class M2HAIDatabase : RoomDatabase() {

@@ -19,6 +19,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.storage.Storage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -48,6 +49,14 @@ class AuthRepositoryImpl @Inject constructor(
         }
 
     override suspend fun signUp(email: String, password: String): Result<User> = runCatching {
+        val settings = supabaseService.getAppSettings()
+        if (!settings.app_enabled) {
+            throw Exception(settings.maintenance_message)
+        }
+        if (!settings.signup_enabled) {
+            throw Exception("Signups are temporarily disabled by the administrator.")
+        }
+
         val profile = supabaseService.signUp(email, password)
         User(
             id = profile.id,
@@ -62,6 +71,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signIn(email: String, password: String): Result<User> = runCatching {
         val profile = supabaseService.signIn(email, password)
+        if (profile.is_disabled) {
+            supabaseService.signOut()
+            throw Exception("This account has been disabled by the administrator.")
+        }
         User(
             id = profile.id,
             email = profile.email,
@@ -289,14 +302,39 @@ class ChatRepositoryImpl @Inject constructor(
         messages: List<Message>,
         modelId: String
     ): Flow<StreamResponse> = flow {
-        val chatMessages = messages.map { 
+        val settings = supabaseService.getAppSettings()
+        if (!settings.app_enabled) {
+            throw Exception(settings.maintenance_message)
+        }
+        val userId = supabaseService.getCurrentUserId()
+        if (userId != null && supabaseService.getProfile(userId)?.is_disabled == true) {
+            throw Exception("This account has been disabled by the administrator.")
+        }
+
+        val chatMessages = normalizeHistoryForProvider(messages).map {
             ChatMessage(role = it.role.name.lowercase(), content = it.content)
+        }
+        val imageRequest = shouldUseImageModel(messages, settings.image_model_id)
+        val targetModelId = if (imageRequest) {
+            settings.image_model_id
+        } else {
+            modelId.ifBlank { settings.default_model_id }
+        }
+        val registeredModels = supabaseService.getAIModels()
+        if (!imageRequest && registeredModels.isNotEmpty() && registeredModels.none { it.id == targetModelId && it.is_active }) {
+            throw Exception("This AI model is disabled by the administrator.")
         }
         
         var aiContent = ""
         
         try {
-            nvidiaAIService.streamChat(chatMessages, modelId).collect { chunk ->
+            nvidiaAIService.streamChat(
+                messages = chatMessages,
+                modelId = targetModelId,
+                systemPrompt = settings.system_prompt,
+                temperature = settings.temperature,
+                maxTokens = settings.max_tokens
+            ).collect { chunk ->
                 aiContent += chunk
                 emit(StreamResponse(content = aiContent, isComplete = false))
             }
@@ -311,10 +349,32 @@ class ChatRepositoryImpl @Inject constructor(
             messageDao.insertMessage(savedMessage.toDomain().toEntity())
             
             emit(StreamResponse(content = aiContent, isComplete = true))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             TelegramLogger.logError("Chat: Streaming failed", e, "Chat")
             throw e
         }
+    }
+
+    override suspend fun submitMessageFeedback(
+        message: Message,
+        action: String,
+        modelId: String?
+    ): Result<Unit> = runCatching {
+        val userId = supabaseService.getCurrentUserId() ?: throw Exception("User not logged in")
+        val chatModelId = modelId ?: chatDao.getChatById(message.chatId)?.modelId
+        supabaseService.submitMessageFeedback(
+            MessageFeedbackRequest(
+                message_id = message.id,
+                chat_id = message.chatId,
+                user_id = userId,
+                action = action,
+                model_id = chatModelId
+            )
+        )
+    }.onFailure {
+        TelegramLogger.logError("Chat: Failed to submit message feedback", it, "Chat")
     }
 
     override suspend fun uploadAttachment(
@@ -340,6 +400,71 @@ class ChatRepositoryImpl @Inject constructor(
         val chats = supabaseService.getChats(userId)
         chatDao.insertChats(chats.map { it.toDomain().toEntity() })
     }
+
+    private fun normalizeHistoryForProvider(messages: List<Message>): List<Message> {
+        val cleaned = messages
+            .filter { it.content.isNotBlank() && it.role != MessageRole.SYSTEM }
+            .dropWhile { it.role != MessageRole.USER }
+
+        if (cleaned.isEmpty()) return emptyList()
+
+        val normalized = mutableListOf<Message>()
+        for (message in cleaned) {
+            val previous = normalized.lastOrNull()
+            if (previous?.role == message.role) {
+                if (message.role == MessageRole.USER) {
+                    normalized[normalized.lastIndex] = previous.copy(
+                        content = listOf(previous.content, message.content).joinToString("\n\n")
+                    )
+                }
+            } else {
+                normalized.add(message)
+            }
+        }
+        return normalized
+    }
+
+    private fun shouldUseImageModel(messages: List<Message>, imageModelId: String): Boolean {
+        if (imageModelId.isBlank()) return false
+        val latestUserMessage = messages.lastOrNull { it.role == MessageRole.USER }?.content ?: return false
+        val prompt = latestUserMessage.lowercase()
+        val imageTerms = listOf(
+            "generate image",
+            "generate an image",
+            "generate me an image",
+            "generate one image",
+            "generate a picture",
+            "generate a photo",
+            "generate a logo",
+            "generate a poster",
+            "generate wallpaper",
+            "create image",
+            "create an image",
+            "create a picture",
+            "create a photo",
+            "create a logo",
+            "create a poster",
+            "make image",
+            "make an image",
+            "make a picture",
+            "make a photo",
+            "make a logo",
+            "make a poster",
+            "design a logo",
+            "design poster",
+            "draw",
+            "illustration",
+            "picture",
+            "photo",
+            "poster",
+            "wallpaper",
+            "logo",
+            "render",
+            "text-to-image",
+            "image generation"
+        )
+        return imageTerms.any { prompt.contains(it) }
+    }
 }
 
 class ModelRepositoryImpl @Inject constructor(
@@ -353,10 +478,12 @@ class ModelRepositoryImpl @Inject constructor(
             val entities = remoteModels.map { it.toEntity() }
             // Optional: aiModelDao.clear() if needed, but insertModels with conflict strategy REPLACE works
             aiModelDao.insertModels(entities)
-            remoteModels.map { it.toDomain() }
+            remoteModels.map { it.toDomain() }.filter { it.isActive }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val localModels = aiModelDao.getAllModels()
-            localModels.map { it.toDomain() }
+            localModels.map { it.toDomain() }.filter { it.isActive }
         }
     }
 
@@ -364,6 +491,33 @@ class ModelRepositoryImpl @Inject constructor(
 
     override suspend fun getModelById(modelId: String): AIModel? {
         return aiModelDao.getModelById(modelId)?.toDomain()
+    }
+
+    override suspend fun getAppSettings(): AppSettings {
+        val settings = supabaseService.getAppSettings()
+        return AppSettings(
+            appEnabled = settings.app_enabled,
+            signupEnabled = settings.signup_enabled,
+            maintenanceMessage = settings.maintenance_message,
+            globalAnnouncement = settings.global_announcement,
+            defaultModelId = settings.default_model_id,
+            imageModelId = settings.image_model_id,
+            systemPrompt = settings.system_prompt,
+            temperature = settings.temperature,
+            maxTokens = settings.max_tokens,
+            latestVersionCode = settings.latest_version_code,
+            latestVersionName = settings.latest_version_name,
+            minSupportedVersionCode = settings.min_supported_version_code,
+            updateRequired = settings.update_required,
+            updateTitle = settings.update_title,
+            updateMessage = settings.update_message,
+            updateApkUrl = settings.update_apk_url,
+            updateReleaseNotes = settings.update_release_notes,
+            updateApkSizeMb = settings.update_apk_size_mb,
+            updateSha256 = settings.update_sha256,
+            updatePublishedAt = settings.update_published_at,
+            updateChannel = settings.update_channel
+        )
     }
 }
 
@@ -413,7 +567,8 @@ private fun AIModelEntity.toDomain() = AIModel(
     name = name,
     provider = provider,
     description = description,
-    isFree = isFree
+    isFree = isFree,
+    isActive = isActive
 )
 
 private fun AIModelDto.toEntity() = AIModelEntity(
@@ -421,7 +576,8 @@ private fun AIModelDto.toEntity() = AIModelEntity(
     name = name,
     provider = provider,
     description = description,
-    isFree = is_free
+    isFree = is_free,
+    isActive = is_active
 )
 
 private fun AIModelDto.toDomain() = AIModel(
@@ -429,7 +585,8 @@ private fun AIModelDto.toDomain() = AIModel(
     name = name,
     provider = provider,
     description = description,
-    isFree = is_free
+    isFree = is_free,
+    isActive = is_active
 )
 
 private fun ChatDto.toDomain() = Chat(

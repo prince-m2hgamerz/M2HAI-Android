@@ -39,7 +39,7 @@ public final class AIModelDao_Impl implements AIModelDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `ai_models` (`id`,`name`,`provider`,`description`,`isFree`) VALUES (?,?,?,?,?)";
+        return "INSERT OR REPLACE INTO `ai_models` (`id`,`name`,`provider`,`description`,`isFree`,`isActive`) VALUES (?,?,?,?,?,?)";
       }
 
       @Override
@@ -55,6 +55,8 @@ public final class AIModelDao_Impl implements AIModelDao {
         }
         final int _tmp = entity.isFree() ? 1 : 0;
         statement.bindLong(5, _tmp);
+        final int _tmp_1 = entity.isActive() ? 1 : 0;
+        statement.bindLong(6, _tmp_1);
       }
     };
   }
@@ -94,6 +96,7 @@ public final class AIModelDao_Impl implements AIModelDao {
           final int _cursorIndexOfProvider = CursorUtil.getColumnIndexOrThrow(_cursor, "provider");
           final int _cursorIndexOfDescription = CursorUtil.getColumnIndexOrThrow(_cursor, "description");
           final int _cursorIndexOfIsFree = CursorUtil.getColumnIndexOrThrow(_cursor, "isFree");
+          final int _cursorIndexOfIsActive = CursorUtil.getColumnIndexOrThrow(_cursor, "isActive");
           final List<AIModelEntity> _result = new ArrayList<AIModelEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final AIModelEntity _item;
@@ -113,7 +116,11 @@ public final class AIModelDao_Impl implements AIModelDao {
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFree);
             _tmpIsFree = _tmp != 0;
-            _item = new AIModelEntity(_tmpId,_tmpName,_tmpProvider,_tmpDescription,_tmpIsFree);
+            final boolean _tmpIsActive;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsActive);
+            _tmpIsActive = _tmp_1 != 0;
+            _item = new AIModelEntity(_tmpId,_tmpName,_tmpProvider,_tmpDescription,_tmpIsFree,_tmpIsActive);
             _result.add(_item);
           }
           return _result;
@@ -144,6 +151,7 @@ public final class AIModelDao_Impl implements AIModelDao {
           final int _cursorIndexOfProvider = CursorUtil.getColumnIndexOrThrow(_cursor, "provider");
           final int _cursorIndexOfDescription = CursorUtil.getColumnIndexOrThrow(_cursor, "description");
           final int _cursorIndexOfIsFree = CursorUtil.getColumnIndexOrThrow(_cursor, "isFree");
+          final int _cursorIndexOfIsActive = CursorUtil.getColumnIndexOrThrow(_cursor, "isActive");
           final AIModelEntity _result;
           if (_cursor.moveToFirst()) {
             final String _tmpId;
@@ -162,7 +170,11 @@ public final class AIModelDao_Impl implements AIModelDao {
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsFree);
             _tmpIsFree = _tmp != 0;
-            _result = new AIModelEntity(_tmpId,_tmpName,_tmpProvider,_tmpDescription,_tmpIsFree);
+            final boolean _tmpIsActive;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsActive);
+            _tmpIsActive = _tmp_1 != 0;
+            _result = new AIModelEntity(_tmpId,_tmpName,_tmpProvider,_tmpDescription,_tmpIsFree,_tmpIsActive);
           } else {
             _result = null;
           }

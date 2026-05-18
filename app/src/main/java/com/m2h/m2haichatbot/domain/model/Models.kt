@@ -16,7 +16,33 @@ data class AIModel(
     val name: String,
     val provider: String,
     val description: String? = null,
-    val isFree: Boolean = true
+    val isFree: Boolean = true,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class AppSettings(
+    val appEnabled: Boolean = true,
+    val signupEnabled: Boolean = true,
+    val maintenanceMessage: String = "M2HAI is temporarily unavailable. Please try again later.",
+    val globalAnnouncement: String = "",
+    val defaultModelId: String = "meta/llama-3.1-8b-instruct",
+    val imageModelId: String = "black-forest-labs/flux.1-schnell",
+    val systemPrompt: String = "",
+    val temperature: Double = 0.5,
+    val maxTokens: Int = 1024,
+    val latestVersionCode: Int = 1,
+    val latestVersionName: String = "1.0",
+    val minSupportedVersionCode: Int = 1,
+    val updateRequired: Boolean = false,
+    val updateTitle: String = "Update available",
+    val updateMessage: String = "",
+    val updateApkUrl: String = "",
+    val updateReleaseNotes: String = "",
+    val updateApkSizeMb: Double = 0.0,
+    val updateSha256: String = "",
+    val updatePublishedAt: String = "",
+    val updateChannel: String = "stable"
 )
 
 @Serializable

@@ -1,6 +1,9 @@
 package com.m2h.m2haichatbot.presentation.chat
 
+import android.content.Intent
+import android.util.Base64
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,7 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +29,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +45,8 @@ fun ChatScreen(
     onOpenDrawer: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNewChatCreated: (String) -> Unit = {},
+    initialMessage: String = "",
+    autoSendInitialMessage: Boolean = false,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -45,6 +55,18 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var initialHandled by remember(chatId, initialMessage) { mutableStateOf(false) }
+
+    LaunchedEffect(initialMessage, autoSendInitialMessage, state.modelId) {
+        if (!initialHandled && initialMessage.isNotBlank() && (!autoSendInitialMessage || state.modelId.isNotBlank())) {
+            initialHandled = true
+            if (autoSendInitialMessage) {
+                viewModel.sendMessage(initialMessage)
+            } else {
+                messageText = initialMessage
+            }
+        }
+    }
 
     LaunchedEffect(state.messages.size, state.streamingContent) {
         if (state.messages.isNotEmpty() || state.streamingContent.isNotEmpty()) {
@@ -54,9 +76,19 @@ fun ChatScreen(
         }
     }
     
-    // Listen for new chat creation
-    LaunchedEffect(state.chatId) {
-        if (chatId == "new" && state.chatId != "new" && state.chatId.isNotEmpty()) {
+    var navigatedAfterFirstSend by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.chatId, state.isLoading, state.isStreaming, state.messages.size) {
+        if (
+            chatId == "new" &&
+            !navigatedAfterFirstSend &&
+            state.chatId != "new" &&
+            state.chatId.isNotEmpty() &&
+            !state.isLoading &&
+            !state.isStreaming &&
+            state.messages.isNotEmpty()
+        ) {
+            navigatedAfterFirstSend = true
             onNewChatCreated(state.chatId)
         }
     }
@@ -213,6 +245,8 @@ fun ChatScreen(
                     messageText = ""
                 },
                 enabled = !state.isLoading && !state.isStreaming,
+                isStreaming = state.isStreaming,
+                onStopClick = viewModel::stopStreaming,
                 onPlaceholderClick = { text ->
                     scope.launch { snackbarHostState.showSnackbar(text) }
                 }
@@ -257,7 +291,10 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(state.messages, key = { it.id }) { message ->
-                        MessageBubble(message = message)
+                        MessageBubble(
+                            message = message,
+                            onAction = viewModel::submitMessageAction
+                        )
                     }
 
                     if (state.isStreaming) {
@@ -297,142 +334,304 @@ fun ChatScreen(
 }
 
 @Composable
-fun MessageBubble(message: Message) {
+fun MessageBubble(
+    message: Message,
+    onAction: (Message, String) -> Unit = { _, _ -> }
+) {
     val isUser = message.role == MessageRole.USER
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.Top
     ) {
-        if (!isUser) {
+        if (isUser) {
+            Surface(
+                modifier = Modifier.widthIn(max = 320.dp),
+                shape = RoundedCornerShape(
+                    topStart = 18.dp,
+                    topEnd = 18.dp,
+                    bottomStart = 18.dp,
+                    bottomEnd = 6.dp
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                tonalElevation = 1.dp
+            ) {
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp)
+                )
+            }
+        } else {
+            AssistantMessageCard(
+                message = message,
+                onAction = onAction
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssistantMessageCard(
+    message: Message,
+    onAction: (Message, String) -> Unit
+) {
+    var reaction by remember(message.id) { mutableStateOf<String?>(null) }
+    var copied by remember(message.id) { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    val imageUrl = remember(message.content) { message.content.extractGeneratedImageUrl() }
+    val cleanedMarkdown = remember(message.content) { message.content.withoutGeneratedImageMarkdown() }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(1200)
+            copied = false
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer, androidx.compose.foundation.shape.CircleShape),
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
-        }
 
-        Card(
-            modifier = Modifier.widthIn(max = 300.dp),
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isUser) 16.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 16.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isUser) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Box(modifier = Modifier.padding(12.dp)) {
-                Column {
-                    if (isUser) {
-                        Text(
-                            text = message.content,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .widthIn(max = 620.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                shadowElevation = 1.dp
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                    GeneratedImageContent(content = message.content)
+                    if (imageUrl != null && cleanedMarkdown.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                    if (cleanedMarkdown.isNotBlank()) {
                         MarkdownText(
-                            markdown = message.content,
+                            markdown = cleanedMarkdown,
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         )
                     }
-
-                    if (!isUser) {
-                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            IconButton(
-                                onClick = { 
-                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message.content))
-                                },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ContentCopy,
-                                    contentDescription = "Copy",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.padding(start = 40.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            AssistantActionButton(
+                icon = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                contentDescription = if (copied) "Copied" else "Copy response",
+                selected = copied,
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(message.content))
+                    copied = true
+                    onAction(message, "copy")
+                }
+            )
+            AssistantActionButton(
+                icon = Icons.Default.ThumbUp,
+                contentDescription = "Like response",
+                selected = reaction == "like",
+                onClick = {
+                    reaction = "like"
+                    onAction(message, "like")
+                }
+            )
+            AssistantActionButton(
+                icon = Icons.Default.ThumbDown,
+                contentDescription = "Unlike response",
+                selected = reaction == "unlike",
+                onClick = {
+                    reaction = "unlike"
+                    onAction(message, "unlike")
+                }
+            )
+            AssistantActionButton(
+                icon = Icons.Default.Share,
+                contentDescription = "Share response",
+                selected = false,
+                onClick = {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, message.content)
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Share response"))
+                    onAction(message, "share")
+                }
+            )
         }
     }
 }
 
 @Composable
+private fun AssistantActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(28.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+@Composable
 fun StreamingMessageBubble(content: String) {
+    val imageUrl = remember(content) { content.extractGeneratedImageUrl() }
+    val cleanedMarkdown = remember(content) { content.withoutGeneratedImageMarkdown() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.Top
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
-                .background(MaterialTheme.colorScheme.tertiaryContainer, androidx.compose.foundation.shape.CircleShape),
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                tint = MaterialTheme.colorScheme.primary
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
-        Card(
-            modifier = Modifier.widthIn(max = 300.dp),
-            shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .widthIn(max = 620.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+            shadowElevation = 1.dp
         ) {
-            Box(modifier = Modifier.padding(12.dp)) {
-                Column {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                GeneratedImageContent(content = content)
+                if (imageUrl != null && cleanedMarkdown.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                if (cleanedMarkdown.isNotBlank()) {
                     MarkdownText(
-                        markdown = content,
+                        markdown = cleanedMarkdown,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().height(2.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .clip(RoundedCornerShape(100)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             }
         }
     }
+}
+
+@Composable
+private fun GeneratedImageContent(content: String) {
+    val imageUrl = remember(content) { content.extractGeneratedImageUrl() }
+    if (imageUrl != null) {
+        val bitmap = remember(imageUrl) { imageUrl.decodeDataImageBitmap() }
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Generated image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 180.dp, max = 320.dp)
+                    .clip(RoundedCornerShape(14.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Generated image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 180.dp, max = 320.dp)
+                    .clip(RoundedCornerShape(14.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+private fun String.extractGeneratedImageUrl(): String? {
+    val markdown = Regex("""!\[[^\]]*]\(([^)]+)\)""").find(this)?.groupValues?.getOrNull(1)
+    if (!markdown.isNullOrBlank()) return markdown
+    val dataImage = Regex("""data:image/[^;\s]+;base64,[A-Za-z0-9+/=_-]+""").find(this)?.value
+    if (!dataImage.isNullOrBlank()) return dataImage
+    return Regex("""https?://\S+\.(?:png|jpg|jpeg|webp)(?:\?\S*)?""", RegexOption.IGNORE_CASE)
+        .find(this)
+        ?.value
+}
+
+private fun String.decodeDataImageBitmap(): android.graphics.Bitmap? {
+    if (!startsWith("data:image/")) return null
+    val base64 = substringAfter("base64,", missingDelimiterValue = "").ifBlank { return null }
+    return runCatching {
+        val bytes = Base64.decode(base64, Base64.DEFAULT)
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }.getOrNull()
+}
+
+private fun String.isGeneratedImageOnly(): Boolean {
+    val imageUrl = extractGeneratedImageUrl() ?: return false
+    val withoutMarkdown = replace(Regex("""!\[[^\]]*]\([^)]+\)"""), "")
+    return withoutMarkdown.replace(imageUrl, "").isBlank()
+}
+
+private fun String.withoutGeneratedImageMarkdown(): String {
+    return replace(Regex("""!\[[^\]]*]\([^)]+\)"""), "").trim()
 }
 
 @Composable
@@ -537,6 +736,8 @@ fun ChatInputBar(
     onMessageChange: (String) -> Unit,
     onSendClick: () -> Unit,
     enabled: Boolean,
+    isStreaming: Boolean,
+    onStopClick: () -> Unit,
     onPlaceholderClick: (String) -> Unit = {}
 ) {
     Surface(
@@ -559,6 +760,7 @@ fun ChatInputBar(
         ) {
             IconButton(
                 onClick = { onPlaceholderClick("Camera") },
+                enabled = !isStreaming,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -567,6 +769,7 @@ fun ChatInputBar(
             BasicTextField(
                 value = message,
                 onValueChange = onMessageChange,
+                enabled = enabled && !isStreaming,
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 10.dp, horizontal = 8.dp)
@@ -587,7 +790,22 @@ fun ChatInputBar(
                 }
             )
 
-            if (message.isNotBlank()) {
+            if (isStreaming) {
+                IconButton(
+                    onClick = onStopClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Icon(
+                        Icons.Default.Stop,
+                        contentDescription = "Stop response",
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else if (message.isNotBlank()) {
                 IconButton(
                     onClick = onSendClick,
                     enabled = enabled,
@@ -607,12 +825,14 @@ fun ChatInputBar(
                 Row {
                     IconButton(
                         onClick = { onPlaceholderClick("Voice") },
+                        enabled = enabled,
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Default.Mic, contentDescription = "Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(
                         onClick = { onPlaceholderClick("Audio") },
+                        enabled = enabled,
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Default.Headphones, contentDescription = "Audio", tint = MaterialTheme.colorScheme.onSurfaceVariant)

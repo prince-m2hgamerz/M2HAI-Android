@@ -41,14 +41,14 @@ public final class M2HAIDatabase_Impl extends M2HAIDatabase {
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(2) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(3) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `chats` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `title` TEXT NOT NULL, `modelId` TEXT NOT NULL, `isArchived` INTEGER NOT NULL, `isPinned` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS `messages` (`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `role` TEXT NOT NULL, `content` TEXT NOT NULL, `attachmentsJson` TEXT, `createdAt` TEXT NOT NULL, PRIMARY KEY(`id`))");
-        db.execSQL("CREATE TABLE IF NOT EXISTS `ai_models` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `provider` TEXT NOT NULL, `description` TEXT, `isFree` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `ai_models` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `provider` TEXT NOT NULL, `description` TEXT, `isFree` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3419463bb5502868bd398afb55848469')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '003f6f6e6b78812aecf93cfd47ba15c5')");
       }
 
       @Override
@@ -133,12 +133,13 @@ public final class M2HAIDatabase_Impl extends M2HAIDatabase {
                   + " Expected:\n" + _infoMessages + "\n"
                   + " Found:\n" + _existingMessages);
         }
-        final HashMap<String, TableInfo.Column> _columnsAiModels = new HashMap<String, TableInfo.Column>(5);
+        final HashMap<String, TableInfo.Column> _columnsAiModels = new HashMap<String, TableInfo.Column>(6);
         _columnsAiModels.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsAiModels.put("name", new TableInfo.Column("name", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsAiModels.put("provider", new TableInfo.Column("provider", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsAiModels.put("description", new TableInfo.Column("description", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsAiModels.put("isFree", new TableInfo.Column("isFree", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsAiModels.put("isActive", new TableInfo.Column("isActive", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysAiModels = new HashSet<TableInfo.ForeignKey>(0);
         final HashSet<TableInfo.Index> _indicesAiModels = new HashSet<TableInfo.Index>(0);
         final TableInfo _infoAiModels = new TableInfo("ai_models", _columnsAiModels, _foreignKeysAiModels, _indicesAiModels);
@@ -150,7 +151,7 @@ public final class M2HAIDatabase_Impl extends M2HAIDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "3419463bb5502868bd398afb55848469", "fb2120d86e347fdd51be27331aa69b79");
+    }, "003f6f6e6b78812aecf93cfd47ba15c5", "d5f8a4946309e9dc6632c3059667e699");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;

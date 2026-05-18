@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/xml_file_paths.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/xml_backup_rules.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/xml_data_extraction_rules.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.m2h.m2haichatbot.app-merged_res-66:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.m2h.m2haichatbot.app-main-67:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]

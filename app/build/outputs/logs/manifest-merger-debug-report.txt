@@ -1,9 +1,20 @@
 -- Merging decision tree log ---
+provider#androidx.core.content.FileProvider
+INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:21:9-29:20
+	android:grantUriPermissions
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:25:13-47
+	android:authorities
+		INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:23:13-64
+	android:exported
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:24:13-37
+	android:name
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:22:13-62
 manifest
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-33:12
-INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-33:12
-INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-33:12
-INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-33:12
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-44:12
+INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-44:12
+INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-44:12
+INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:2:1-44:12
 MERGED from [androidx.hilt:hilt-navigation-compose:1.1.0] C:\Users\m2hga\.gradle\caches\transforms-4\cff791e16cc094141b150a2c1469f612\transformed\jetified-hilt-navigation-compose-1.1.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.hilt:hilt-navigation:1.1.0] C:\Users\m2hga\.gradle\caches\transforms-4\65b0110ff6e865797602686742987e73\transformed\jetified-hilt-navigation-1.1.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.navigation:navigation-common:2.7.7] C:\Users\m2hga\.gradle\caches\transforms-4\ff3f822a7a591de131dc5391bace5ecd\transformed\navigation-common-2.7.7\AndroidManifest.xml:17:1-22:12
@@ -128,9 +139,13 @@ uses-permission#android.permission.RECORD_AUDIO
 ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:7:5-71
 	android:name
 		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:7:22-68
+uses-permission#android.permission.REQUEST_INSTALL_PACKAGES
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:8:5-83
+	android:name
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:8:22-80
 application
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:9:5-31:19
-INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:9:5-31:19
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:10:5-42:19
+INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:10:5-42:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.6] C:\Users\m2hga\.gradle\caches\transforms-4\ddc85ca4afc5759e09adbe0c7367b455\transformed\jetified-ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.6] C:\Users\m2hga\.gradle\caches\transforms-4\ddc85ca4afc5759e09adbe0c7367b455\transformed\jetified-ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [io.github.jan-tennert.supabase:storage-kt-android-debug:2.5.0] C:\Users\m2hga\.gradle\caches\transforms-4\1fca3e98ea7abb1889bddd4e596f1493\transformed\jetified-storage-kt-debug\AndroidManifest.xml:8:5-18:19
@@ -160,47 +175,53 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\m2hga\.gradle\cach
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.13.0] C:\Users\m2hga\.gradle\caches\transforms-4\8714d9a97f00c857f19967b9e6d8a68a\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:17:9-35
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:18:9-35
 	android:label
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:15:9-41
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:16:9-41
 	android:fullBackupContent
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:13:9-54
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:14:9-54
 	android:roundIcon
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:16:9-54
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:17:9-54
 	tools:targetApi
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:19:9-29
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:20:9-29
 	android:icon
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:14:9-43
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:15:9-43
 	android:allowBackup
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:11:9-35
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:12:9-35
 	android:theme
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:18:9-43
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:19:9-43
 	android:dataExtractionRules
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:12:9-65
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:13:9-65
 	android:name
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:10:9-41
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:11:9-41
 activity#com.m2h.m2haichatbot.MainActivity
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:20:9-30:20
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:31:9-41:20
 	android:label
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:23:13-45
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:34:13-45
 	android:windowSoftInputMode
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:25:13-55
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:36:13-55
 	android:exported
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:22:13-36
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:33:13-36
 	android:theme
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:24:13-47
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:35:13-47
 	android:name
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:21:13-41
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:32:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:26:13-29:29
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:37:13-40:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:27:17-69
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:38:17-69
 	android:name
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:27:25-66
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:38:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:28:17-77
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:39:17-77
 	android:name
-		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:28:27-74
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:39:27-74
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:26:13-28:54
+	android:resource
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:28:17-51
+	android:name
+		ADDED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml:27:17-67
 uses-sdk
 INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\m2hga\Downloads\M2HAI-Andoird\app\src\main\AndroidManifest.xml

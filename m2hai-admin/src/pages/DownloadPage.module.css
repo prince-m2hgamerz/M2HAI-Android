@@ -1,0 +1,654 @@
+.page {
+  min-height: 100vh;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow-x: hidden;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 24px;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+}
+
+.brand,
+.navLinks,
+.backLink,
+.heroBadge,
+.primaryDownload,
+.secondaryAction,
+.rowDownload,
+.metaItem,
+.releaseKicker,
+.channel,
+.countPill {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 10px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-primary);
+  background: var(--primary);
+  border-radius: 9px;
+  box-shadow: var(--shadow-sm);
+}
+
+.navLinks {
+  gap: 8px;
+}
+
+.navLinks a,
+.backLink {
+  min-height: 38px;
+  padding: 0 13px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-pill);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.navLinks a:hover,
+.backLink:hover {
+  color: var(--primary);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.hero {
+  position: relative;
+  min-height: 470px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 45% 12%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 28%),
+    radial-gradient(circle at 73% 2%, rgba(255, 0, 128, 0.09), transparent 24%),
+    radial-gradient(circle at 24% 4%, rgba(0, 223, 216, 0.1), transparent 24%),
+    linear-gradient(180deg, var(--bg-card), var(--bg-primary));
+}
+
+.heroContent {
+  position: relative;
+  width: min(100%, 900px);
+  padding: 74px 24px 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.backLink {
+  gap: 7px;
+  margin-bottom: 22px;
+}
+
+.heroBadge,
+.releaseKicker,
+.channel,
+.countPill {
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 11px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.hero h1 {
+  width: min(100%, 760px);
+  margin-top: 24px;
+  color: var(--primary);
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 0.96;
+  letter-spacing: -2.1px;
+  font-weight: 600;
+}
+
+.hero p {
+  width: min(100%, 670px);
+  margin-top: 20px;
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1.62;
+}
+
+.downloadShell {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: 54px 24px 84px;
+}
+
+.latestGrid,
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.latestCard,
+.installCard,
+.releaseRow,
+.emptyCard,
+.emptyCardLarge,
+.errorCard,
+.skeletonCard,
+.skeletonSide {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.latestCard {
+  min-height: 460px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.latestHeader,
+.latestActions,
+.sectionHeader,
+.releaseTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.channel {
+  color: var(--primary);
+  text-transform: capitalize;
+}
+
+.versionBlock {
+  margin-top: 42px;
+}
+
+.versionBlock h2 {
+  color: var(--primary);
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 0.98;
+  letter-spacing: -1.7px;
+  font-weight: 600;
+}
+
+.versionBlock span {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12px;
+}
+
+.releaseMessage {
+  width: min(100%, 700px);
+  margin-top: 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.releaseMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.metaItem {
+  gap: 10px;
+  min-width: 0;
+  padding: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+}
+
+.metaItem > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+}
+
+.metaItem div {
+  min-width: 0;
+}
+
+.metaItem small,
+.metaItem strong {
+  display: block;
+}
+
+.metaItem small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.metaItem strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latestActions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 32px;
+}
+
+.primaryDownload,
+.secondaryAction,
+.rowDownload,
+.errorCard button {
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--rounded-pill);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.primaryDownload {
+  color: var(--on-primary);
+  background: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.secondaryAction,
+.rowDownload,
+.errorCard button {
+  color: var(--primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.primaryDownload:hover,
+.secondaryAction:hover,
+.rowDownload:hover,
+.errorCard button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.installCard {
+  padding: 24px;
+}
+
+.installIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: var(--on-primary);
+  background: var(--primary);
+  border-radius: var(--rounded-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.installCard h2 {
+  margin-top: 22px;
+  color: var(--primary);
+  font-size: 28px;
+  line-height: 1.08;
+  letter-spacing: -0.8px;
+  font-weight: 600;
+}
+
+.steps {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.steps span {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.steps svg {
+  flex-shrink: 0;
+  color: var(--success);
+  margin-top: 1px;
+}
+
+.archiveSection {
+  margin-top: 64px;
+}
+
+.sectionHeader {
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12px;
+}
+
+.sectionHeader h2 {
+  color: var(--primary);
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.06;
+  letter-spacing: -1.1px;
+  font-weight: 600;
+}
+
+.releaseList {
+  display: grid;
+  gap: 10px;
+}
+
+.releaseRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+}
+
+.releaseIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+}
+
+.releaseInfo {
+  min-width: 0;
+}
+
+.releaseTitle {
+  justify-content: flex-start;
+}
+
+.releaseTitle h3 {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.releaseTitle span {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-pill);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.releaseInfo p {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowDownload {
+  min-height: 38px;
+  padding: 0 13px;
+  font-size: 13px;
+}
+
+.emptyCard,
+.emptyCardLarge,
+.errorCard {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.emptyCard {
+  padding: 34px 18px;
+}
+
+.emptyCardLarge,
+.errorCard {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 46px 24px;
+}
+
+.emptyCard svg,
+.emptyCardLarge svg,
+.errorCard svg {
+  color: var(--text-muted);
+}
+
+.emptyCard h3,
+.emptyCardLarge h2,
+.errorCard h2 {
+  margin-top: 16px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.emptyCard p,
+.emptyCardLarge p,
+.errorCard p {
+  max-width: 500px;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.errorCard button {
+  margin-top: 22px;
+}
+
+.skeletonCard,
+.skeletonSide {
+  padding: 24px;
+}
+
+.skeletonCard span,
+.skeletonCard strong,
+.skeletonCard p,
+.skeletonCard div,
+.skeletonSide span,
+.skeletonSide p {
+  display: block;
+  border-radius: var(--rounded-sm);
+  background: linear-gradient(90deg, var(--bg-secondary), var(--border), var(--bg-secondary));
+  background-size: 220% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeletonCard span {
+  width: 160px;
+  height: 32px;
+}
+
+.skeletonCard strong {
+  width: 55%;
+  height: 62px;
+  margin-top: 46px;
+}
+
+.skeletonCard p {
+  width: 82%;
+  height: 16px;
+  margin-top: 18px;
+}
+
+.skeletonCard p + p {
+  width: 64%;
+  margin-top: 8px;
+}
+
+.skeletonCard div {
+  width: 220px;
+  height: 46px;
+  margin-top: 88px;
+  border-radius: var(--rounded-pill);
+}
+
+.skeletonSide span {
+  width: 48px;
+  height: 48px;
+}
+
+.skeletonSide p {
+  width: 90%;
+  height: 42px;
+  margin-top: 14px;
+}
+
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (max-width: 980px) {
+  .latestGrid,
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .releaseMetaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .nav {
+    height: 58px;
+    padding: 0 14px;
+  }
+
+  .navLinks a:first-child {
+    display: none;
+  }
+
+  .hero {
+    min-height: auto;
+  }
+
+  .heroContent {
+    padding: 42px 16px 48px;
+  }
+
+  .hero h1 {
+    font-size: clamp(40px, 15vw, 56px);
+    letter-spacing: -1.5px;
+  }
+
+  .hero p {
+    font-size: 16px;
+  }
+
+  .downloadShell {
+    padding: 34px 16px 62px;
+  }
+
+  .latestCard,
+  .installCard {
+    padding: 18px;
+  }
+
+  .latestHeader,
+  .latestActions,
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .versionBlock {
+    margin-top: 34px;
+  }
+
+  .releaseMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryDownload,
+  .secondaryAction,
+  .rowDownload {
+    width: 100%;
+  }
+
+  .archiveSection {
+    margin-top: 46px;
+  }
+
+  .releaseRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .rowDownload {
+    grid-column: 1 / -1;
+  }
+}

@@ -143,10 +143,19 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(32.dp))
                     }
                     
-                    items(state.chats, key = { it.id }) { chat ->
+                    items(
+                        state.chats.sortedWith(
+                            compareByDescending<Chat> { it.isPinned }
+                                .thenBy { it.isArchived }
+                                .thenByDescending { it.updatedAt }
+                        ),
+                        key = { it.id }
+                    ) { chat ->
                         ChatItem(
                             chat = chat,
                             onClick = { onNavigateToChat(chat.id) },
+                            onTogglePin = { viewModel.togglePin(chat.id, !chat.isPinned) },
+                            onToggleArchive = { viewModel.toggleArchive(chat.id, !chat.isArchived) },
                             onDelete = { viewModel.deleteChat(chat.id) }
                         )
                     }
@@ -190,6 +199,8 @@ fun EmptyState(onCreateChat: () -> Unit) {
 fun ChatItem(
     chat: Chat,
     onClick: () -> Unit,
+    onTogglePin: () -> Unit,
+    onToggleArchive: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -202,14 +213,33 @@ fun ChatItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = chat.title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+        Icon(
+            imageVector = if (chat.isPinned) Icons.Default.PushPin else Icons.Outlined.ChatBubbleOutline,
+            contentDescription = null,
+            tint = if (chat.isArchived) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
+            modifier = Modifier.size(20.dp)
         )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = chat.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            if (chat.isArchived) {
+                Text(
+                    text = "Archived",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         Box {
             IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
@@ -220,6 +250,27 @@ fun ChatItem(
                 onDismissRequest = { showMenu = false },
                 modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
+                DropdownMenuItem(
+                    text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
+                    onClick = {
+                        onTogglePin()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.PushPin, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text(if (chat.isArchived) "Restore" else "Archive") },
+                    onClick = {
+                        onToggleArchive()
+                        showMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (chat.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                            null
+                        )
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                     onClick = {

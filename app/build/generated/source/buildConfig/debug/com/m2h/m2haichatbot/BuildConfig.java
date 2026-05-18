@@ -7,12 +7,12 @@ public final class BuildConfig {
   public static final boolean DEBUG = Boolean.parseBoolean("true");
   public static final String APPLICATION_ID = "com.m2h.m2haichatbot";
   public static final String BUILD_TYPE = "debug";
-  public static final int VERSION_CODE = 1;
-  public static final String VERSION_NAME = "1.0";
+  public static final int VERSION_CODE = 3;
+  public static final String VERSION_NAME = "1.2";
   // Field from default config.
   public static final String EDGE_CHAT_FUNCTION_URL = "https://hmovjjnhpchohwuwegvg.supabase.co/functions/v1/chat";
   // Field from default config.
-  public static final String GEMINI_API_KEY = "AIzaSyB2W1hw2MGtRmwJ9b1XERO0R1b7fyJ1VWs";
+  public static final String GEMINI_API_KEY = "AIzaSyCgTBRM6we-3aLUTZOo9chglGPzM7jAS1M";
   // Field from default config.
   public static final String NVIDIA_API_KEY = "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";
   // Field from default config.
